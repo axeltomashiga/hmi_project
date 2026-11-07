@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">Unitree G1 HMI</string>
+
+    <!-- Estados Operativos -->
+    <string name="state_standby">En Espera / Base</string>
+    <string name="state_patrolling">En Misión (Patrullaje)</string>
+    <string name="state_paused">Misión Pausada</string>
+    <string name="state_returning_home">Regresando a Punto Seguro</string>
+    <string name="state_emergency_stop">Detención Operativa</string>
+    <string name="state_fault">Falla de Sistema</string>
+
+    <!-- Estados de Conectividad -->
+    <string name="connection_online">Conectado</string>
+    <string name="connection_degraded">Enlace Inestable</string>
+    <string name="connection_offline">Sin Conexión</string>
+    <string name="connection_stale_warning">OFFLINE (Datos congelados)</string>
+
+    <!-- Tipos de Comandos -->
+    <string name="cmd_start_mission">Iniciar Misión</string>
+    <string name="cmd_pause_mission">Pausar Misión</string>
+    <string name="cmd_resume_mission">Reanudar Misión</string>
+    <string name="cmd_cancel_mission">Cancelar Misión</string>
+    <string name="cmd_return_safe_point">Regresar a Punto Seguro</string>
+    <string name="cmd_operational_stop">Detención Operativa</string>
+    <string name="cmd_acknowledge_alert">Reconocer Alerta</string>
+
+    <!-- Estados de Órdenes -->
+    <string name="cmd_status_pending">Pendiente</string>
+    <string name="cmd_status_confirmed">Confirmada</string>
+    <string name="cmd_status_rejected">Rechazada</string>
+    <string name="cmd_status_no_response">Sin Respuesta</string>
+
+    <!-- Progreso de Regreso a Base -->
+    <string name="title_returning_home">Regreso a Base en Progreso</string>
+    <string name="desc_returning_home">Navegando hacia la Estación de Carga</string>
+    <string name="destination_base">Destino: Estación Base (0, 0)</string>
+</resources>
