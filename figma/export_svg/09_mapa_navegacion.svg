@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" width="1000" height="680">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap');
+      text { font-family: 'Inter', sans-serif; }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="680" fill="#F8FAFC" rx="16"/>
+
+  <!-- Header -->
+  <g transform="translate(40, 36)">
+    <text x="0" y="24" font-size="22" font-weight="800" fill="#0F172A">Mapa de Navegación y Flujos de Operación (HMI Unitree G1)</text>
+    <text x="0" y="46" font-size="13" font-weight="500" fill="#64748B">Arquitectura de pantallas, transiciones modales y bifurcación entre Flujo Normal y Flujo con Falla.</text>
+  </g>
+
+  <!-- PANTALLA INICIAL: SELECCIÓN DEL ROBOT -->
+  <g transform="translate(40, 110)">
+    <rect width="180" height="80" rx="12" fill="#EEF2FF" stroke="#4F46E5" stroke-width="2" filter="url(#shadow)"/>
+    <text x="14" y="28" font-size="12" font-weight="800" fill="#312E81">1. Ficha Robot</text>
+    <text x="14" y="46" font-size="10.5" fill="#4338CA">Unitree G1 vs Go2</text>
+    <text x="14" y="62" font-size="9.5" fill="#6366F1">Ficha técnica y sensores</text>
+  </g>
+
+  <!-- Flecha a Supervisión -->
+  <path d="M220 150 L270 150" stroke="#4F46E5" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)"/>
+  <text x="245" y="142" font-size="9" font-weight="700" fill="#4F46E5" text-anchor="middle">Vincular</text>
+
+  <!-- NÚCLEO: SUPERVISIÓN DASHBOARD -->
+  <g transform="translate(280, 100)">
+    <rect width="240" height="100" rx="14" fill="#FFFFFF" stroke="#4F46E5" stroke-width="2.5" filter="url(#shadow)"/>
+    <text x="16" y="28" font-size="14" font-weight="800" fill="#0F172A">2. Supervisión (Dashboard)</text>
+    <text x="16" y="48" font-size="11" fill="#475569">• Selector de Misiones (Standby)</text>
+    <text x="16" y="64" font-size="11" fill="#475569">• Telemetría en vivo (8 gen. + 3 serv.)</text>
+    <text x="16" y="80" font-size="11" fill="#475569">• Comandos discretos de control</text>
+  </g>
+
+  <!-- BIFURCACIÓN DE FLUJOS -->
+  <!-- RUTA VERDE: FLUJO NORMAL -->
+  <path d="M520 135 L620 135 L620 90 L680 90" stroke="#16A34A" stroke-width="2.5" fill="none"/>
+  <rect x="540" y="118" width="115" height="18" rx="9" fill="#DCFCE7"/>
+  <text x="597.5" y="131" font-size="9.5" font-weight="800" fill="#15803D" text-anchor="middle">FLUJO 1: NORMAL</text>
+
+  <g transform="translate(680, 50)">
+    <rect width="260" height="85" rx="12" fill="#FFFFFF" stroke="#16A34A" stroke-width="1.8" filter="url(#shadow)"/>
+    <text x="16" y="26" font-size="12" font-weight="800" fill="#15803D">Patrullaje Waypoint 1 → 8</text>
+    <text x="16" y="44" font-size="10.5" fill="#334155">Progreso 0% a 100% sin anomalías</text>
+    <text x="16" y="60" font-size="10.5" fill="#334155">Llegada a destino → Modal Fin de Misión</text>
+  </g>
+
+  <!-- Flecha a Historial Normal -->
+  <path d="M810 135 L810 175" stroke="#16A34A" stroke-width="2" fill="none"/>
+  <g transform="translate(680, 175)">
+    <rect width="260" height="70" rx="12" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+    <text x="16" y="26" font-size="12" font-weight="800" fill="#166534">Registro Room: COMPLETADA</text>
+    <text x="16" y="44" font-size="10.5" fill="#14532D">8/8 waypoints alcanzados con éxito</text>
+  </g>
+
+  <!-- RUTA ROJA: FLUJO CON FALLA / CONTINGENCIA -->
+  <path d="M520 165 L620 165 L620 320 L680 320" stroke="#DC2626" stroke-width="2.5" fill="none"/>
+  <rect x="540" y="230" width="115" height="18" rx="9" fill="#FEE2E2"/>
+  <text x="597.5" y="243" font-size="9.5" font-weight="800" fill="#B91C1C" text-anchor="middle">FLUJO 2: CON FALLA</text>
+
+  <g transform="translate(680, 275)">
+    <rect width="260" height="90" rx="12" fill="#FFFFFF" stroke="#DC2626" stroke-width="2" filter="url(#shadow)"/>
+    <text x="16" y="26" font-size="12" font-weight="800" fill="#B91C1C">Incidente / Falla Detectada</text>
+    <text x="16" y="44" font-size="10.5" fill="#334155">• Desconexión red / Gas 88 ppm / Obstáculo</text>
+    <text x="16" y="60" font-size="10.5" fill="#334155">• Robot pasa a PAUSED o FAULT</text>
+    <text x="16" y="76" font-size="10.5" fill="#B91C1C">• Despliegue de Banner de Decisión HRI</text>
+  </g>
+
+  <!-- Flecha a Resolución y Auditoría -->
+  <path d="M810 365 L810 405" stroke="#DC2626" stroke-width="2" fill="none"/>
+  <g transform="translate(680, 405)">
+    <rect width="260" height="75" rx="12" fill="#FEE2E2" stroke="#DC2626" stroke-width="1.5"/>
+    <text x="16" y="26" font-size="12" font-weight="800" fill="#7F1D1D">Registro Room: ABORTADA / LOG</text>
+    <text x="16" y="44" font-size="10.5" fill="#991B1B">Acuse de alerta y repliegue seguro auditado</text>
+  </g>
+
+  <!-- NAVEGACIÓN GLOBAL POR BOTTOM BAR (TABS SECUNDARIOS) -->
+  <g transform="translate(40, 260)">
+    <rect width="480" height="220" rx="14" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="20" y="28" font-size="13" font-weight="800" fill="#0F172A">Destinos Globales (Barra de Navegación Inferior)</text>
+    
+    <g transform="translate(20, 44)">
+      <!-- Tab Alertas -->
+      <rect width="200" height="65" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <text x="12" y="24" font-size="12" font-weight="700" fill="#0F172A">Alertas (Badge numérico)</text>
+      <text x="12" y="42" font-size="10" fill="#64748B">Centro de contingencias, severidad y acuse de recibo de alarmas.</text>
+
+      <!-- Tab Historial -->
+      <g transform="translate(220, 0)">
+        <rect width="210" height="65" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+        <text x="12" y="24" font-size="12" font-weight="700" fill="#0F172A">Historial y Auditoría</text>
+        <text x="12" y="42" font-size="10" fill="#64748B">Consultas a Room DB: misiones, duraciones y logs de órdenes.</text>
+      </g>
+    </g>
+
+    <g transform="translate(20, 125)">
+      <!-- Tab Escenarios -->
+      <rect width="200" height="65" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <text x="12" y="24" font-size="12" font-weight="700" fill="#0F172A">Escenarios de Evaluación</text>
+      <text x="12" y="42" font-size="10" fill="#64748B">Disparadores 1-clic de los 5 casos de prueba obligatorios del TP.</text>
+
+      <!-- Modales Modales Transversales -->
+      <g transform="translate(220, 0)">
+        <rect width="210" height="65" rx="8" fill="#FEF2F2" stroke="#FCA5A5"/>
+        <text x="12" y="24" font-size="12" font-weight="700" fill="#B91C1C">Modales de Confirmación</text>
+        <text x="12" y="42" font-size="10" fill="#7F1D1D">Doble validación para Cancelar Misión y Detención Operativa.</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer resumen -->
+  <g transform="translate(40, 520)">
+    <rect width="920" height="120" rx="12" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1"/>
+    <text x="24" y="28" font-size="13" font-weight="800" fill="#312E81">Resumen de Cumplimiento de la Sección 3 (Diseño en Figma):</text>
+    <text x="24" y="52" font-size="11" fill="#4338CA">✓ Prototipo navegable: Vistas articuladas e interconectadas con Bottom Navigation Bar y modales.</text>
+    <text x="24" y="70" font-size="11" fill="#4338CA">✓ Componentes reutilizables: UI Kit modular con badges, métricas, botones y diálogo de seguridad física.</text>
+    <text x="24" y="88" font-size="11" fill="#4338CA">✓ Estados visuales: Normal (verde/azul), Deshabilitado (gris), Advertencia (amarillo) y Error (rojo).</text>
+    <text x="24" y="106" font-size="11" fill="#4338CA">✓ Cobertura total de vistas y los dos flujos exigidos: Flujo Normal (completado) y Flujo con Falla (contingencia y repliegue).</text>
+  </g>
+</svg>
