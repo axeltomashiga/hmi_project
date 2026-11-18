@@ -12,7 +12,8 @@ data class MapZone(
     val top: Float,
     val right: Float,
     val bottom: Float,
-    val kind: ZoneKind
+    val kind: ZoneKind,
+    val shortName: String = name
 ) {
     fun contains(x: Float, y: Float): Boolean = x in left..right && y in top..bottom
 }
@@ -47,14 +48,14 @@ object BuildingMap {
     val default: FloorMap = FloorMap(
         minX = -2f, minY = -2f, maxX = 25f, maxY = 18f,
         zones = listOf(
-            MapZone("Hall Central / Base", -2f, -2f, 4f, 3f, ZoneKind.BASE),
-            MapZone("Pasillo de Aulas 101-105", 4f, 0.5f, 11f, 4.5f, ZoneKind.CLASSROOM),
-            MapZone("Laboratorio de Robótica e IoT", 11f, 2.5f, 16.5f, 7.5f, ZoneKind.TECHNICAL),
-            MapZone("Sala de Servidores y Tablero B", 16.5f, 5.5f, 20.5f, 10.5f, ZoneKind.TECHNICAL),
-            MapZone("Salida de Emergencia Este", 20.5f, 9.5f, 25f, 14.5f, ZoneKind.EXIT),
-            MapZone("Depósito de Mantenimiento", 13.5f, 12.5f, 20.5f, 17.5f, ZoneKind.STORAGE),
-            MapZone("Pasillo Sur - Oficinas", 6f, 8.6f, 13.5f, 13.6f, ZoneKind.OFFICE),
-            MapZone("Punto Final de Inspección", 5f, 5.5f, 10.5f, 8.6f, ZoneKind.COMMON)
+            MapZone("Hall Central / Base", -2f, -2f, 4f, 3f, ZoneKind.BASE, "Hall/Base"),
+            MapZone("Pasillo de Aulas 101-105", 4f, 0.5f, 11f, 4.5f, ZoneKind.CLASSROOM, "Aulas 101-105"),
+            MapZone("Laboratorio de Robótica e IoT", 11f, 2.5f, 16.5f, 7.5f, ZoneKind.TECHNICAL, "Lab. Robótica"),
+            MapZone("Sala de Servidores y Tablero B", 16.5f, 5.5f, 20.5f, 10.5f, ZoneKind.TECHNICAL, "Servidores"),
+            MapZone("Salida de Emergencia Este", 20.5f, 9.5f, 25f, 14.5f, ZoneKind.EXIT, "Salida Este"),
+            MapZone("Depósito de Mantenimiento", 13.5f, 12.5f, 20.5f, 17.5f, ZoneKind.STORAGE, "Depósito"),
+            MapZone("Pasillo Sur - Oficinas", 6f, 8.6f, 13.5f, 13.6f, ZoneKind.OFFICE, "Oficinas"),
+            MapZone("Punto Final de Inspección", 5f, 5.5f, 10.5f, 8.6f, ZoneKind.COMMON, "Punto Final")
         ),
         base = MapWaypoint("Estación Base de Carga", 0f, 0f),
         waypoints = listOf(
