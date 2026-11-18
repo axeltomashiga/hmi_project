@@ -19,6 +19,7 @@ data class TelemetryData(
     val missionProgress: Float = 0f,
     val currentWaypoint: Int = 0,
     val totalWaypoints: Int = 0,
+    val waypointsReached: Int = 0,        // waypoints de la misión ya alcanzados (para el mapa)
     // 5. Ubicación
     val zoneName: String = "Estación Base - Pabellón A",
     val posX: Float = 0f,

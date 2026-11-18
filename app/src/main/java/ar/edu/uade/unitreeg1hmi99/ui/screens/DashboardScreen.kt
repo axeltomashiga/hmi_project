@@ -68,6 +68,7 @@ import ar.edu.uade.unitreeg1hmi99.ui.components.CommandStatusCard
 import ar.edu.uade.unitreeg1hmi99.ui.components.ConfirmDialog
 import ar.edu.uade.unitreeg1hmi99.ui.components.ConnectivityBadge
 import ar.edu.uade.unitreeg1hmi99.ui.components.OperationalStateBadge
+import ar.edu.uade.unitreeg1hmi99.ui.components.PatrolMap
 import ar.edu.uade.unitreeg1hmi99.ui.viewmodel.RobotViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -275,6 +276,14 @@ fun DashboardScreen(
                     }
                 }
             }
+
+            // 3b. Mapa 2D de patrullaje: ruta, avance, posición y orientación del robot
+            PatrolMap(
+                floorMap = state.floorMap,
+                route = state.plannedRoute,
+                reached = state.routeReached,
+                telemetry = telemetry
+            )
 
             // 4. Selector de Misión de Inspección (Paso 2: Operador selecciona la misión cuando el robot está en reposo)
             if (telemetry.operationalState == OperationalState.STANDBY) {
