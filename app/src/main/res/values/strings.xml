@@ -45,4 +45,6 @@
     <string name="map_stale_position">Última posición conocida</string>
     <string name="map_content_description">Mapa del edificio. Robot en %1$s, %2$d de %3$d puntos de la ronda visitados.</string>
     <string name="map_progress_format">%1$d de %2$d puntos</string>
+    <string name="map_legend_person">Persona</string>
+    <string name="map_waypoint_info">%1$d. %2$s · a %3$.1f m del robot</string>
 </resources>

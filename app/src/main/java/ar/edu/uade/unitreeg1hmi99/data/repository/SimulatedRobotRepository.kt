@@ -210,6 +210,16 @@ class SimulatedRobotRepository(
             }
         }
 
+        // Personas en áreas restringidas: la guardia las detecta al detenerse a inspeccionar
+        // Oficinas (2) o el Depósito (1). Solo se informa el conteo, nunca imágenes (privacidad).
+        val persons = if (opState == OperationalState.PATROLLING && dwellRemainingSec > 0f) {
+            when {
+                zone.contains("Oficinas") -> 2
+                zone.contains("Depósito") -> 1
+                else -> 0
+            }
+        } else 0
+
         // 2. Batería: desgaste en patrullaje y recarga en base (acumulador fraccional)
         val isAtBase = hypot(posX - baseStation.x, posY - baseStation.y) < AT_BASE_RADIUS_M
         val isCharging = isAtBase && opState == OperationalState.STANDBY
@@ -266,6 +276,7 @@ class SimulatedRobotRepository(
             missionProgress = progress,
             currentWaypoint = waypointIdx,
             waypointsReached = reachedCount,
+            detectedPersonsCount = persons,
             zoneName = zone,
             posX = posX,
             posY = posY,

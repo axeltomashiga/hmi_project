@@ -35,9 +35,12 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -66,6 +69,7 @@ import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
 import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
 import ar.edu.uade.unitreeg1hmi99.data.model.ZoneKind
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 private val VisitedColor = Color(0xFF2E7D32)
@@ -75,6 +79,7 @@ private val BaseColor = Color(0xFF1565C0)
 private val DangerColor = Color(0xFFC62828)
 private val WarningColor = Color(0xFFEF6C00)
 private val StaleColor = Color(0xFF757575)
+private val PersonColor = Color(0xFFAD1457)
 
 private const val VISION_RADIUS_M = 3.5f
 private const val VISION_HALF_ANGLE_DEG = 35f
@@ -163,6 +168,11 @@ fun PatrolMap(
     val hasObstacle = unackAlerts.any { it.code == "OBSTACLE_BLOCKED" }
     val hasLowBattery = unackAlerts.any { it.code == "BATTERY_LOW" }
     val total = route.size
+
+    // Waypoint tocado por el operador (-1 = ninguno)
+    var selectedRaw by remember { mutableIntStateOf(-1) }
+    val selected = selectedRaw.takeIf { it in route.indices } ?: -1
+
     val description = stringResource(
         R.string.map_content_description, telemetry.zoneName, reached.coerceAtMost(total), total
     )
@@ -200,6 +210,19 @@ fun PatrolMap(
                     .clip(MaterialTheme.shapes.medium)
                     .background(surfaceColor)
                     .semantics { contentDescription = description }
+                    .pointerInput(route, floorMap) {
+                        detectTapGestures { tap ->
+                            val scale = size.width / floorMap.width
+                            val hitRadius = 24.dp.toPx()
+                            val nearest = route.withIndex().minByOrNull { (_, w) ->
+                                (Offset((w.x - floorMap.minX) * scale, (w.y - floorMap.minY) * scale) - tap).getDistance()
+                            }
+                            val hit = nearest?.takeIf { (_, w) ->
+                                (Offset((w.x - floorMap.minX) * scale, (w.y - floorMap.minY) * scale) - tap).getDistance() <= hitRadius
+                            }
+                            selectedRaw = if (hit == null || hit.index == selectedRaw) -1 else hit.index
+                        }
+                    }
             ) {
                 val s = size.width / floorMap.width
                 fun px(x: Float, y: Float) = Offset((x - floorMap.minX) * s, (y - floorMap.minY) * s)
@@ -265,6 +288,9 @@ fun PatrolMap(
                     if (i == reached && reached < total) {
                         drawCircle(NextColor.copy(alpha = 0.35f), radius = 14 * dpPx, center = c)
                     }
+                    if (i == selected) {
+                        drawCircle(BaseColor, radius = 17 * dpPx, center = c, style = Stroke(2.5f * dpPx))
+                    }
                     drawCircle(color, radius = 9 * dpPx, center = c)
                     drawCircle(Color.White, radius = 9 * dpPx, center = c, style = Stroke(1.5f * dpPx))
                     drawCenteredText(textMeasurer, "${i + 1}", c, Color.White, 10.sp.toPx())
@@ -289,6 +315,17 @@ fun PatrolMap(
                     drawLine(WarningColor, o - Offset(k, -k), o + Offset(k, -k), strokeWidth = 3 * dpPx)
                 }
 
+                // Personas detectadas por la cámara: aparecen delante del robot (solo conteo, sin imágenes)
+                if (telemetry.detectedPersonsCount > 0 && !stale) {
+                    for (k in 0 until telemetry.detectedPersonsCount.coerceAtMost(4)) {
+                        val offsetDeg = (k - (telemetry.detectedPersonsCount - 1) / 2f) * 28f
+                        val rad = Math.toRadians((telemetry.headingDeg + offsetDeg).toDouble())
+                        val p = px(telemetry.posX + 2.3f * cos(rad).toFloat(), telemetry.posY + 2.3f * sin(rad).toFloat())
+                        drawCircle(PersonColor, radius = 6 * dpPx, center = p)
+                        drawCircle(Color.White, radius = 6 * dpPx, center = p, style = Stroke(1.5f * dpPx))
+                    }
+                }
+
                 drawRobot(
                     center = px(robotX, robotY),
                     headingDeg = heading,
@@ -302,6 +339,20 @@ fun PatrolMap(
                 )
 
                 drawScaleBar(floorMap, s, textMeasurer, onSurface, dpPx)
+            }
+
+            if (selected >= 0) {
+                val w = route[selected]
+                Text(
+                    text = stringResource(
+                        R.string.map_waypoint_info,
+                        selected + 1,
+                        w.name,
+                        hypot(w.x - telemetry.posX, w.y - telemetry.posY)
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium
+                )
             }
 
             if (stale) {
@@ -322,6 +373,7 @@ fun PatrolMap(
                 LegendDot(PendingColor, stringResource(R.string.map_legend_pending))
                 LegendDot(robotColor(state, stale), stringResource(R.string.map_legend_robot))
                 LegendDot(WarningColor, stringResource(R.string.map_legend_obstacle))
+                LegendDot(PersonColor, stringResource(R.string.map_legend_person))
             }
         }
     }
