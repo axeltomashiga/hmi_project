@@ -81,6 +81,11 @@ class SimulatedRobotRepository(
         logEventAsync("SYSTEM", "Simulador Unitree G1 Inicializado", "Listo para supervisión offline", "INFO")
     }
 
+    /** Avanza la simulación N ticks sin esperar al reloj. Solo para tests. */
+    internal fun advanceTicks(n: Int) {
+        repeat(n) { tickSimulation() }
+    }
+
     private fun startSimulationLoop() {
         simulationTickerJob?.cancel()
         simulationTickerJob = scope.launch {
@@ -144,7 +149,12 @@ class SimulatedRobotRepository(
                             routeQueue.removeFirst()
                             reachedCount++
                             waypointIdx = reachedCount
-                            if (routeQueue.isNotEmpty()) dwellRemainingSec = DWELL_SECONDS
+                            if (routeQueue.isNotEmpty()) {
+                                // Llegó: se detiene de inmediato e inicia la pausa de guardia
+                                dwellRemainingSec = DWELL_SECONDS
+                                isMoving = false
+                                speed = 0f
+                            }
                         } else {
                             posX += dx / dist * budget
                             posY += dy / dist * budget

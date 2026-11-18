@@ -31,7 +31,8 @@ Modelo Kotlin: `TelemetryData`.
     "name": "Ronda Integral del Edificio",
     "progress": 37.5,
     "currentWaypoint": 3,
-    "totalWaypoints": 8
+    "totalWaypoints": 8,
+    "waypointsReached": 2
   },
   "location": {
     "zone": "Laboratorio de Robótica e IoT",
@@ -63,10 +64,11 @@ Modelo Kotlin: `TelemetryData`.
 | `operationalState` | `operationalState` | enum | `STANDBY`, `PATROLLING`, `PAUSED`, `RETURNING_HOME`, `EMERGENCY_STOP`, `FAULT` |
 | `mission.id` / `name` | `missionId` / `missionName` | string? | `null` sin misión |
 | `mission.progress` | `missionProgress` | float | 0.0–100.0 |
-| `mission.currentWaypoint` / `totalWaypoints` | `currentWaypoint` / `totalWaypoints` | int | |
+| `mission.currentWaypoint` / `totalWaypoints` | `currentWaypoint` / `totalWaypoints` | int | `currentWaypoint` es el índice 1-based del waypoint en curso |
+| `mission.waypointsReached` | `waypointsReached` | int | Waypoints ya alcanzados de la ruta. Lo usa el mapa para marcar visitados |
 | `location.zone` | `zoneName` | string | |
 | `location.x` / `y` | `posX` / `posY` | float | m, origen en la Estación Base (0,0) |
-| `location.headingDeg` | `headingDeg` | float | 0–360 |
+| `location.headingDeg` | `headingDeg` | float | 0–360. 0° apunta a +X y crece hacia +Y (eje Y hacia abajo, convención de pantalla) |
 | `motion.speedMps` | `speedMps` | float | m/s |
 | `motion.isMoving` | `isMoving` | bool | |
 | `alerts[]` | `activeAlerts` | array | ver sección 4 |
