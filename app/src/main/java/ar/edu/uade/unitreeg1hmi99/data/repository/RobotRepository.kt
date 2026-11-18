@@ -4,11 +4,15 @@ import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
 import ar.edu.uade.unitreeg1hmi99.data.local.entity.MissionHistoryEntity
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
 import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface RobotRepository {
+    /** Plano 2D del entorno, waypoints y rutas de cada misión */
+    val floorMap: FloorMap
+
     /** Flujo continuo de telemetría dinámica en tiempo real */
     val telemetry: StateFlow<TelemetryData>
 

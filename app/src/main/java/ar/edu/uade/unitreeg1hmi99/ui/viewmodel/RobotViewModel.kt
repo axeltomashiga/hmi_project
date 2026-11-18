@@ -5,7 +5,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import ar.edu.uade.unitreeg1hmi99.data.model.AlertItem
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.data.model.BuildingMap
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.data.model.MapWaypoint
+import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
 import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
 import ar.edu.uade.unitreeg1hmi99.data.repository.RobotRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +40,11 @@ data class RobotUiState(
         MissionTemplate("MIS-B", "Inspección Técnica de Tableros", "Monitoreo prioritario de salas de servidores y tableros eléctricos", 5, "8 min"),
         MissionTemplate("MIS-C", "Patrullaje Perimetral y Accesos", "Supervisión de salidas de emergencia y accesos principales", 4, "6 min")
     ),
-    val selectedMission: MissionTemplate = MissionTemplate("MIS-A", "Ronda Integral del Edificio", "Inspección completa de pasillos, laboratorios y tableros", 8, "12 min")
+    val selectedMission: MissionTemplate = MissionTemplate("MIS-A", "Ronda Integral del Edificio", "Inspección completa de pasillos, laboratorios y tableros", 8, "12 min"),
+    // Datos para el mapa 2D
+    val floorMap: FloorMap = BuildingMap.default,
+    val plannedRoute: List<MapWaypoint> = emptyList(),
+    val routeReached: Int = 0
 )
 
 class RobotViewModel(
@@ -58,7 +66,14 @@ class RobotViewModel(
         _isForcedRejection,
         _selectedMission
     ) { telemetry, lastCmd, offline, reject, mission ->
+        // Ruta mostrada en el mapa: la misión activa (o recién finalizada) o, si no hay, la seleccionada
+        val showActiveMission = telemetry.missionId != null &&
+            (telemetry.operationalState != OperationalState.STANDBY || telemetry.justCompletedMissionName != null)
+        val routeMissionId = if (showActiveMission) telemetry.missionId else mission.id
         RobotUiState(
+            floorMap = repository.floorMap,
+            plannedRoute = repository.floorMap.routeFor(routeMissionId),
+            routeReached = if (showActiveMission) telemetry.waypointsReached else 0,
             telemetry = telemetry,
             lastCommand = lastCmd,
             isForcedOffline = offline,

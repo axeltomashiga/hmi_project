@@ -9,7 +9,10 @@ import ar.edu.uade.unitreeg1hmi99.data.model.AlertSeverity
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandStatus
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.data.model.BuildingMap
 import ar.edu.uade.unitreeg1hmi99.data.model.ConnectionState
+import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.data.model.MapWaypoint
 import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
 import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
 import kotlinx.coroutines.CoroutineScope
@@ -30,21 +33,12 @@ import kotlin.random.Random
 class SimulatedRobotRepository(
     private val missionDao: MissionHistoryDao,
     private val eventDao: EventLogDao,
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+    override val floorMap: FloorMap = BuildingMap.default
 ) : RobotRepository {
 
-    private val baseStation = Waypoint("Estación Base de Carga", 0.0f, 0.0f)
+    private val baseStation = floorMap.base
 
-    private val waypoints = listOf(
-        Waypoint("Pabellón A - Hall Central", 2.0f, 1.0f),
-        Waypoint("Pasillo de Aulas 101-105", 8.0f, 2.5f),
-        Waypoint("Laboratorio de Robótica e IoT", 14.0f, 5.0f),
-        Waypoint("Sala de Servidores y Tablero B", 18.0f, 8.0f),
-        Waypoint("Salida de Emergencia Este", 22.0f, 12.0f),
-        Waypoint("Depósito de Mantenimiento", 16.0f, 15.0f),
-        Waypoint("Pasillo Sur - Oficinas", 9.0f, 10.0f),
-        Waypoint("Punto Final de Inspección", 8.0f, 8.0f)
-    )
 
     private val _telemetry = MutableStateFlow(
         TelemetryData(
@@ -53,7 +47,7 @@ class SimulatedRobotRepository(
             zoneName = baseStation.name,
             posX = baseStation.x,
             posY = baseStation.y,
-            totalWaypoints = waypoints.size,
+            totalWaypoints = floorMap.routeFor("MIS-A").size,
             isCharging = true
         )
     )
@@ -71,8 +65,8 @@ class SimulatedRobotRepository(
 
     // Estado cinemático (protegido por simLock: lo tocan el ticker y los comandos)
     private val simLock = Any()
-    private val routeQueue = ArrayDeque<Waypoint>()   // waypoints pendientes de alcanzar
-    private var currentRoute: List<Waypoint> = waypoints
+    private val routeQueue = ArrayDeque<MapWaypoint>()   // waypoints pendientes de alcanzar
+    private var currentRoute: List<MapWaypoint> = floorMap.waypoints
     private var pathTotalDistance = 0f                // longitud de la ruta activa (m)
     private var returnStartProgress = 0f              // progreso al iniciar el retorno a base
     private var reachedCount = 0                      // waypoints de la misión ya alcanzados
@@ -271,6 +265,7 @@ class SimulatedRobotRepository(
             operationalState = opState,
             missionProgress = progress,
             currentWaypoint = waypointIdx,
+            waypointsReached = reachedCount,
             zoneName = zone,
             posX = posX,
             posY = posY,
@@ -304,7 +299,7 @@ class SimulatedRobotRepository(
     }
 
     /** Define una nueva ruta pendiente y fija su longitud total (base del cálculo de progreso). */
-    private fun setRoute(points: List<Waypoint>, fromX: Float, fromY: Float) {
+    private fun setRoute(points: List<MapWaypoint>, fromX: Float, fromY: Float) {
         routeQueue.clear()
         routeQueue.addAll(points)
         pathTotalDistance = remainingDistance(fromX, fromY)
@@ -449,7 +444,7 @@ class SimulatedRobotRepository(
                 maxRecordedTemp = 21.5
                 val mName = parameters["missionName"] ?: "Ronda de Inspección Integral"
                 val mId = parameters["missionId"] ?: "MIS-${UUID.randomUUID().toString().take(6).uppercase()}"
-                currentRoute = waypoints
+                currentRoute = floorMap.routeFor(mId)
                 reachedCount = 0
                 batteryAccum = 0f
                 setRoute(currentRoute, current.posX, current.posY)
@@ -482,7 +477,7 @@ class SimulatedRobotRepository(
             }
 
             CommandType.CANCEL_MISSION -> {
-                val completed = current.currentWaypoint
+                val completed = current.waypointsReached
                 persistMissionResult("CANCELLED", completed, "Misión cancelada por el operador.")
                 routeQueue.clear()
                 dwellRemainingSec = 0f
@@ -632,7 +627,7 @@ class SimulatedRobotRepository(
             zoneName = baseStation.name,
             posX = baseStation.x,
             posY = baseStation.y,
-            totalWaypoints = waypoints.size,
+            totalWaypoints = floorMap.routeFor("MIS-A").size,
             isCharging = true
         )
         _lastCommand.value = null
@@ -651,7 +646,7 @@ class SimulatedRobotRepository(
                     endTime = System.currentTimeMillis(),
                     status = status,
                     waypointsCompleted = waypointsCompleted,
-                    totalWaypoints = waypoints.size,
+                    totalWaypoints = currentRoute.size,
                     maxGasPpm = maxRecordedGas,
                     maxTempCelsius = maxRecordedTemp,
                     incidentsCount = current.activeAlerts.size,
@@ -675,7 +670,6 @@ class SimulatedRobotRepository(
         }
     }
 
-    private data class Waypoint(val name: String, val x: Float, val y: Float)
 
     private companion object {
         const val TICK_MS = 200L
