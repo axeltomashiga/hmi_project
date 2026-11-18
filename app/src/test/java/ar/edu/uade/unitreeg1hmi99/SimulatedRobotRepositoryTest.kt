@@ -1,5 +1,7 @@
 package ar.edu.uade.unitreeg1hmi99
 
+import ar.edu.uade.unitreeg1hmi99.data.local.SimulationSnapshot
+import ar.edu.uade.unitreeg1hmi99.data.local.SimulationStateStore
 import ar.edu.uade.unitreeg1hmi99.data.local.dao.EventLogDao
 import ar.edu.uade.unitreeg1hmi99.data.local.dao.MissionHistoryDao
 import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
@@ -38,6 +40,17 @@ class SimulatedRobotRepositoryTest {
         override fun clearEvents(): Int = 0
     }
 
+    private class FakeStateStore : SimulationStateStore {
+        var snapshot: SimulationSnapshot? = null
+        override fun load(): SimulationSnapshot? = snapshot
+        override fun save(snapshot: SimulationSnapshot, sync: Boolean) {
+            this.snapshot = snapshot
+        }
+        override fun clear() {
+            snapshot = null
+        }
+    }
+
     private lateinit var repo: SimulatedRobotRepository
 
     // Máximo desplazamiento por tick: 0.85 m/s * 0.2 s * factor de tiempo 2 (+ tolerancia)
@@ -52,6 +65,14 @@ class SimulatedRobotRepositoryTest {
             CoroutineScope(Job().apply { cancel() })
         )
     }
+
+    private fun newRepoWithStore(store: SimulationStateStore): SimulatedRobotRepository =
+        SimulatedRobotRepository(
+            FakeMissionDao(),
+            FakeEventDao(),
+            CoroutineScope(Job().apply { cancel() }),
+            stateStore = store
+        )
 
     private fun send(type: CommandType, missionId: String = "MIS-A") = runBlocking {
         repo.sendCommand(type, mapOf("missionId" to missionId, "missionName" to missionId))
@@ -211,5 +232,104 @@ class SimulatedRobotRepositoryTest {
         map.waypoints.forEach { w ->
             assertTrue("${w.name} fuera de toda zona", map.zoneAt(w.x, w.y) != null)
         }
+    }
+
+    @Test
+    fun restoresActivePatrollingMissionAfterRecreation() = runBlocking {
+        val store = FakeStateStore()
+        val firstRepo = newRepoWithStore(store)
+        firstRepo.sendCommand(CommandType.START_MISSION, mapOf("missionId" to "MIS-B", "missionName" to "Inspección Técnica"))
+        firstRepo.advanceTicks(40)
+        firstRepo.saveStateNow(sync = true)
+
+        val beforeExit = firstRepo.telemetry.value
+        assertEquals(OperationalState.PATROLLING, beforeExit.operationalState)
+        assertTrue(beforeExit.posX > 1f || beforeExit.posY > 1f)
+
+        val restoredRepo = newRepoWithStore(store)
+        val afterReopen = restoredRepo.telemetry.value
+        assertEquals(OperationalState.PATROLLING, afterReopen.operationalState)
+        assertEquals("MIS-B", afterReopen.missionId)
+        assertEquals("Inspección Técnica", afterReopen.missionName)
+        assertEquals(beforeExit.posX, afterReopen.posX, 0.001f)
+        assertEquals(beforeExit.posY, afterReopen.posY, 0.001f)
+        assertEquals(beforeExit.missionProgress, afterReopen.missionProgress, 0.001f)
+        assertFalse(afterReopen.isCharging)
+
+        var ticks = 0
+        while (restoredRepo.telemetry.value.operationalState != OperationalState.STANDBY && ticks++ < 3000) {
+            restoredRepo.advanceTicks(1)
+        }
+        val completed = restoredRepo.telemetry.value
+        assertEquals(OperationalState.STANDBY, completed.operationalState)
+        assertEquals(100f, completed.missionProgress, 0.001f)
+        assertEquals(5, completed.waypointsReached)
+    }
+
+    @Test
+    fun restoresPausedMissionWithAlertsAndScenarioFlags() = runBlocking {
+        val store = FakeStateStore()
+        val firstRepo = newRepoWithStore(store)
+        firstRepo.sendCommand(CommandType.START_MISSION, mapOf("missionId" to "MIS-A", "missionName" to "Ronda Integral"))
+        firstRepo.advanceTicks(25)
+        firstRepo.triggerObstacleIncident()
+        firstRepo.toggleForceRejectCommands(true)
+        firstRepo.saveStateNow(sync = true)
+
+        val saved = firstRepo.telemetry.value
+        assertEquals(OperationalState.PAUSED, saved.operationalState)
+        assertEquals(1, saved.activeAlerts.size)
+
+        val restoredRepo = newRepoWithStore(store)
+        val restored = restoredRepo.telemetry.value
+        assertEquals(OperationalState.PAUSED, restored.operationalState)
+        assertEquals(1, restored.activeAlerts.size)
+        assertEquals("OBSTACLE_BLOCKED", restored.activeAlerts.first().code)
+        assertEquals(saved.posX, restored.posX, 0.001f)
+        assertEquals(saved.posY, restored.posY, 0.001f)
+        assertTrue(restoredRepo.isForcedRejection.value)
+    }
+
+    @Test
+    fun restoresReturningHomeAndCompletesReturnToBase() = runBlocking {
+        val store = FakeStateStore()
+        val firstRepo = newRepoWithStore(store)
+        firstRepo.sendCommand(CommandType.START_MISSION, mapOf("missionId" to "MIS-A", "missionName" to "Ronda Integral"))
+        firstRepo.advanceTicks(80)
+        firstRepo.sendCommand(CommandType.RETURN_TO_SAFE_POINT)
+        firstRepo.advanceTicks(10)
+        firstRepo.saveStateNow(sync = true)
+
+        assertEquals(OperationalState.RETURNING_HOME, firstRepo.telemetry.value.operationalState)
+
+        val restoredRepo = newRepoWithStore(store)
+        assertEquals(OperationalState.RETURNING_HOME, restoredRepo.telemetry.value.operationalState)
+
+        var ticks = 0
+        while (restoredRepo.telemetry.value.operationalState == OperationalState.RETURNING_HOME && ticks++ < 3000) {
+            restoredRepo.advanceTicks(1)
+        }
+        val atBase = restoredRepo.telemetry.value
+        assertEquals(OperationalState.STANDBY, atBase.operationalState)
+        assertEquals(0f, atBase.posX, 0.001f)
+        assertEquals(0f, atBase.posY, 0.001f)
+    }
+
+    @Test
+    fun resetSimulation_clearsPersistedState() = runBlocking {
+        val store = FakeStateStore()
+        val firstRepo = newRepoWithStore(store)
+        firstRepo.sendCommand(CommandType.START_MISSION, mapOf("missionId" to "MIS-A", "missionName" to "Ronda Integral"))
+        firstRepo.advanceTicks(30)
+        firstRepo.saveStateNow(sync = true)
+        assertTrue(store.snapshot != null)
+
+        firstRepo.resetSimulation()
+        assertEquals(null, store.snapshot)
+
+        val restoredRepo = newRepoWithStore(store)
+        assertEquals(OperationalState.STANDBY, restoredRepo.telemetry.value.operationalState)
+        assertEquals(0f, restoredRepo.telemetry.value.posX, 0.001f)
+        assertEquals(0f, restoredRepo.telemetry.value.posY, 0.001f)
     }
 }

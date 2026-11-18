@@ -19,6 +19,10 @@ interface RobotRepository {
     /** Registro de la última orden emitida y su estado (PENDING, CONFIRMED, REJECTED, NO_RESPONSE) */
     val lastCommand: StateFlow<CommandRecord?>
 
+    /** Banderas observables de simulación de fallas para mantener sincronizada la UI */
+    val isForcedOffline: StateFlow<Boolean>
+    val isForcedRejection: StateFlow<Boolean>
+
     /** Emisión de comandos con validación de condiciones de habilitación y simulación de respuesta */
     suspend fun sendCommand(type: CommandType, parameters: Map<String, String> = emptyMap()): CommandRecord
 
@@ -40,4 +44,7 @@ interface RobotRepository {
     fun triggerServiceAlert(gasPpm: Double = 98.0, tempCelsius: Double = 52.0)
     fun toggleForceRejectCommands(reject: Boolean)
     fun resetSimulation()
+
+    /** Persiste de inmediato el estado actual de la simulación (por ej. al pasar a segundo plano). */
+    fun saveStateNow(sync: Boolean = true) {}
 }
