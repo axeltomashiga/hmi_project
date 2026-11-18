@@ -3,9 +3,12 @@ package ar.edu.uade.unitreeg1hmi99.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import ar.edu.uade.unitreeg1hmi99.data.model.AlertItem
+import ar.edu.uade.unitreeg1hmi99.data.model.BuildingMap
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
 import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.data.model.MapWaypoint
+import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
 import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
 import ar.edu.uade.unitreeg1hmi99.data.repository.RobotRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +26,12 @@ data class MissionTemplate(
     val estimatedDuration: String
 )
 
+private val DEFAULT_MISSIONS = listOf(
+    MissionTemplate("MIS-A", "Ronda Integral del Edificio", "Inspección completa de pasillos, laboratorios y tableros", 8, "12 min"),
+    MissionTemplate("MIS-B", "Inspección Técnica de Tableros", "Monitoreo prioritario de salas de servidores y tableros eléctricos", 5, "8 min"),
+    MissionTemplate("MIS-C", "Patrullaje Perimetral y Accesos", "Supervisión de salidas de emergencia y accesos principales", 4, "6 min")
+)
+
 data class RobotUiState(
     val telemetry: TelemetryData = TelemetryData(),
     val lastCommand: CommandRecord? = null,
@@ -31,41 +40,66 @@ data class RobotUiState(
     val selectedRobot: String = "Unitree G1 (Humanoide Bípedo)",
     val showEmergencyConfirmDialog: Boolean = false,
     val showCancelConfirmDialog: Boolean = false,
-    val availableMissions: List<MissionTemplate> = listOf(
-        MissionTemplate("MIS-A", "Ronda Integral del Edificio", "Inspección completa de pasillos, laboratorios y tableros", 8, "12 min"),
-        MissionTemplate("MIS-B", "Inspección Técnica de Tableros", "Monitoreo prioritario de salas de servidores y tableros eléctricos", 5, "8 min"),
-        MissionTemplate("MIS-C", "Patrullaje Perimetral y Accesos", "Supervisión de salidas de emergencia y accesos principales", 4, "6 min")
-    ),
-    val selectedMission: MissionTemplate = MissionTemplate("MIS-A", "Ronda Integral del Edificio", "Inspección completa de pasillos, laboratorios y tableros", 8, "12 min")
+    val availableMissions: List<MissionTemplate> = DEFAULT_MISSIONS,
+    val selectedMission: MissionTemplate = DEFAULT_MISSIONS.first(),
+    // Datos para el mapa 2D
+    val floorMap: FloorMap = BuildingMap.default,
+    val plannedRoute: List<MapWaypoint> = emptyList(),
+    val routeReached: Int = 0
 )
 
 class RobotViewModel(
     private val repository: RobotRepository
 ) : ViewModel() {
 
-    private val _isForcedOffline = MutableStateFlow(false)
-    private val _isForcedRejection = MutableStateFlow(false)
     private val _showEmergencyDialog = MutableStateFlow(false)
     private val _showCancelDialog = MutableStateFlow(false)
     private val _selectedMission = MutableStateFlow(
-        MissionTemplate("MIS-A", "Ronda Integral del Edificio", "Inspección completa de pasillos, laboratorios y tableros", 8, "12 min")
+        DEFAULT_MISSIONS.firstOrNull { it.id == repository.telemetry.value.missionId } ?: DEFAULT_MISSIONS.first()
     )
 
-    val uiState: StateFlow<RobotUiState> = combine(
-        repository.telemetry,
-        repository.lastCommand,
-        _isForcedOffline,
-        _isForcedRejection,
-        _selectedMission
-    ) { telemetry, lastCmd, offline, reject, mission ->
-        RobotUiState(
+    private fun buildUiState(
+        telemetry: TelemetryData,
+        lastCmd: CommandRecord?,
+        offline: Boolean,
+        reject: Boolean,
+        mission: MissionTemplate,
+        emergencyDlg: Boolean,
+        cancelDlg: Boolean
+    ): RobotUiState {
+        // Ruta mostrada en el mapa: la misión activa (o recién finalizada) o, si no hay, la seleccionada
+        val showActiveMission = telemetry.missionId != null &&
+            (telemetry.operationalState != OperationalState.STANDBY || telemetry.justCompletedMissionName != null)
+        val routeMissionId = if (showActiveMission) telemetry.missionId else mission.id
+        return RobotUiState(
+            floorMap = repository.floorMap,
+            plannedRoute = repository.floorMap.routeFor(routeMissionId),
+            routeReached = if (showActiveMission) telemetry.waypointsReached else 0,
             telemetry = telemetry,
             lastCommand = lastCmd,
             isForcedOffline = offline,
             isForcedRejection = reject,
             selectedMission = mission,
-            showEmergencyConfirmDialog = _showEmergencyDialog.value,
-            showCancelConfirmDialog = _showCancelDialog.value
+            showEmergencyConfirmDialog = emergencyDlg,
+            showCancelConfirmDialog = cancelDlg
+        )
+    }
+
+    val uiState: StateFlow<RobotUiState> = combine(
+        repository.telemetry,
+        repository.lastCommand,
+        repository.isForcedOffline,
+        repository.isForcedRejection,
+        _selectedMission
+    ) { telemetry, lastCmd, offline, reject, mission ->
+        buildUiState(
+            telemetry = telemetry,
+            lastCmd = lastCmd,
+            offline = offline,
+            reject = reject,
+            mission = mission,
+            emergencyDlg = _showEmergencyDialog.value,
+            cancelDlg = _showCancelDialog.value
         )
     }.combine(_showEmergencyDialog) { state, emergencyDlg ->
         state.copy(showEmergencyConfirmDialog = emergencyDlg)
@@ -74,7 +108,15 @@ class RobotViewModel(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = RobotUiState()
+        initialValue = buildUiState(
+            telemetry = repository.telemetry.value,
+            lastCmd = repository.lastCommand.value,
+            offline = repository.isForcedOffline.value,
+            reject = repository.isForcedRejection.value,
+            mission = _selectedMission.value,
+            emergencyDlg = _showEmergencyDialog.value,
+            cancelDlg = _showCancelDialog.value
+        )
     )
 
     fun selectMission(mission: MissionTemplate) {
@@ -133,9 +175,7 @@ class RobotViewModel(
 
     /** Escenario 3: Forzar Desconexión y Reconexión */
     fun toggleDisconnectionScenario() {
-        val next = !_isForcedOffline.value
-        _isForcedOffline.value = next
-        repository.toggleDisconnection(next)
+        repository.toggleDisconnection(!repository.isForcedOffline.value)
     }
 
     /** Escenario 4: Incidente de Obstáculo / Bloqueo */
@@ -150,14 +190,10 @@ class RobotViewModel(
 
     /** Simulación de rechazo de órdenes */
     fun toggleCommandRejectionScenario() {
-        val next = !_isForcedRejection.value
-        _isForcedRejection.value = next
-        repository.toggleForceRejectCommands(next)
+        repository.toggleForceRejectCommands(!repository.isForcedRejection.value)
     }
 
     fun resetSimulation() {
-        _isForcedOffline.value = false
-        _isForcedRejection.value = false
         repository.resetSimulation()
     }
 

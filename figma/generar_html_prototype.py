@@ -1,0 +1,1829 @@
+# -*- coding: utf-8 -*-
+"""
+Genera el Prototipo Web Interactivo y Navegable figma/index.html
+"""
+
+import os
+
+HTML_PATH = os.path.join("figma", "index.html")
+
+html_content = '''<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prototipo Interactivo Figma — HMI Unitree G1 (UADE)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-light: #EEF2FF;
+      --primary-border: #C7D2FE;
+      --secondary: #0EA5E9;
+      --success: #16A34A;
+      --success-light: #DCFCE7;
+      --warning: #D97706;
+      --warning-light: #FEF3C7;
+      --error: #DC2626;
+      --error-light: #FEE2E2;
+      --purple: #7C3AED;
+      --purple-light: #F3E8FF;
+      --gray-50: #F8FAFC;
+      --gray-100: #F1F5F9;
+      --gray-200: #E2E8F0;
+      --gray-400: #94A3B8;
+      --gray-600: #475569;
+      --gray-800: #1E293B;
+      --gray-900: #0F172A;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0B0F19;
+      color: #F1F5F9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Global Header */
+    .header {
+      background: #111827;
+      border-bottom: 1px solid #1F2937;
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #4F46E5, #0EA5E9);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: white;
+    }
+    .header-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .header-text p {
+      font-size: 11px;
+      color: #9CA3AF;
+    }
+
+    /* Top Tabs */
+    .top-nav {
+      display: flex;
+      gap: 6px;
+      background: #1F2937;
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: #9CA3AF;
+      padding: 8px 16px;
+      border-radius: 7px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-btn:hover { color: #FFFFFF; background: #374151; }
+    .nav-btn.active {
+      background: #4F46E5;
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+    }
+
+    /* Main Container */
+    .main-content {
+      flex: 1;
+      padding: 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* View Sections */
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
+    /* PROTOTYPE VIEW LAYOUT */
+    .prototype-layout {
+      display: grid;
+      grid-template-columns: 410px 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* Phone Device Mockup Frame */
+    .phone-mockup {
+      width: 390px;
+      height: 820px;
+      background: #FFFFFF;
+      border-radius: 46px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 12px #1F2937, 0 0 0 14px #374151;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      margin: 10px auto;
+    }
+
+    /* Notch */
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 24px;
+      background: #1F2937;
+      border-radius: 14px;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .notch-camera {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #0B0F19;
+    }
+    .notch-speaker {
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: #0B0F19;
+    }
+
+    /* Phone Status Bar */
+    .phone-status-bar {
+      height: 42px;
+      padding: 12px 24px 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0F172A;
+      background: #F8FAFC;
+      z-index: 40;
+    }
+
+    /* Phone Screens Container */
+    .phone-screen {
+      flex: 1;
+      overflow-y: auto;
+      background: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 84px; /* for bottom bar */
+      position: relative;
+    }
+    .phone-screen::-webkit-scrollbar { width: 4px; }
+    .phone-screen::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
+
+    /* Phone Bottom Bar */
+    .phone-bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 72px;
+      background: #FFFFFF;
+      border-top: 1px solid #E2E8F0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 4px 10px 4px;
+      z-index: 40;
+    }
+    .bottom-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      color: #64748B;
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 16px;
+      position: relative;
+      transition: all 0.15s ease;
+      background: none;
+      border: none;
+    }
+    .bottom-tab.active {
+      color: #4F46E5;
+      font-weight: 700;
+      background: #EEF2FF;
+    }
+    .bottom-tab svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+    .badge-tab {
+      position: absolute;
+      top: 0;
+      right: 10px;
+      background: #DC2626;
+      color: white;
+      font-size: 8px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 8px;
+    }
+    .phone-home-indicator {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 3.5px;
+      background: #94A3B8;
+      border-radius: 2px;
+    }
+
+    /* Screen UI Components inside Phone */
+    .screen-header {
+      padding: 12px 18px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E2E8F0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .screen-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+    .screen-subtitle {
+      font-size: 11px;
+      color: #64748B;
+      font-weight: 500;
+    }
+
+    .status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge-online { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+    .badge-standby { background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE; }
+    .badge-patrolling { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+    .badge-paused { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+    .badge-returning { background: #F3E8FF; color: #6B21A8; border: 1px solid #D8B4FE; }
+    .badge-offline { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+    .content-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* UI Cards */
+    .ui-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    .ui-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 6px;
+    }
+
+    /* Quick status row */
+    .quick-status-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .status-mini-card {
+      padding: 8px 10px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Service Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .metric-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .metric-title {
+      font-size: 9.5px;
+      color: #64748B;
+      font-weight: 600;
+    }
+    .metric-val {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 3px 0;
+    }
+    .metric-tag {
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    .metric-tag-ok { background: #DCFCE7; color: #15803D; }
+    .metric-tag-warn { background: #FEF3C7; color: #92400E; }
+    .metric-tag-err { background: #FEE2E2; color: #991B1B; }
+
+    /* Mission Item Card */
+    .mission-select-card {
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: #FFFFFF;
+    }
+    .mission-select-card.selected {
+      border-color: #4F46E5;
+      background: #EEF2FF;
+    }
+
+    /* Command Buttons */
+    .btn-group-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .btn-action {
+      padding: 10px 4px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 700;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-start { background: #4F46E5; color: white; }
+    .btn-start:hover { background: #4338CA; }
+    .btn-pause { background: #D97706; color: white; }
+    .btn-resume { background: #16A34A; color: white; }
+    .btn-cancel { background: white; border: 1.5px solid #DC2626; color: #DC2626; }
+    .btn-return { background: #7C3AED; color: white; }
+    .btn-stop-critical {
+      background: #DC2626;
+      color: white;
+      width: 100%;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-stop-critical:hover { background: #B91C1C; }
+    .btn-disabled {
+      background: #E2E8F0 !important;
+      color: #94A3B8 !important;
+      border-color: #E2E8F0 !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+    }
+
+    /* Progress Bar */
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #EEF2FF;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #4F46E5;
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+
+    /* Incident Banner */
+    .incident-banner {
+      background: #FEF3C7;
+      border: 1.5px solid #F59E0B;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .incident-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #92400E;
+      margin-bottom: 4px;
+    }
+    .incident-desc {
+      font-size: 10px;
+      color: #78350F;
+      margin-bottom: 8px;
+    }
+    .incident-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+
+    /* Modal Backdrop */
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-card {
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 20px;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    /* Control Panel / Walkthrough Console on the Right */
+    .control-console {
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 18px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .console-header h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .console-header p {
+      font-size: 12.5px;
+      color: #9CA3AF;
+      margin-top: 4px;
+    }
+
+    /* Flow Step Tracker */
+    .flow-stepper {
+      background: #1F2937;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .step-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .step-item.active {
+      background: rgba(79, 70, 229, 0.15);
+      border-color: #6366F1;
+    }
+    .step-item.completed {
+      border-color: #10B981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .step-number {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #374151;
+      color: #E5E7EB;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-item.active .step-number {
+      background: #4F46E5;
+      color: white;
+    }
+    .step-item.completed .step-number {
+      background: #10B981;
+      color: white;
+    }
+    .step-info h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .step-info p {
+      font-size: 11.5px;
+      color: #9CA3AF;
+      margin-top: 2px;
+    }
+
+    /* State Switcher Badges */
+    .state-switcher {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .btn-state-toggle {
+      padding: 10px 8px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #1F2937;
+      color: #D1D5DB;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .btn-state-toggle:hover { background: #374151; }
+    .btn-state-toggle.active-normal { background: #16A34A; color: white; border-color: #22C55E; }
+    .btn-state-toggle.active-disabled { background: #475569; color: white; border-color: #64748B; }
+    .btn-state-toggle.active-warning { background: #D97706; color: white; border-color: #F59E0B; }
+    .btn-state-toggle.active-error { background: #DC2626; color: white; border-color: #EF4444; }
+
+    /* Flow selector pill buttons */
+    .flow-btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .btn-flow {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1.5px solid transparent;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .btn-flow-normal {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: #10B981;
+      color: #34D399;
+    }
+    .btn-flow-normal:hover, .btn-flow-normal.active {
+      background: #10B981;
+      color: #FFFFFF;
+    }
+    .btn-flow-failure {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #EF4444;
+      color: #F87171;
+    }
+    .btn-flow-failure:hover, .btn-flow-failure.active {
+      background: #EF4444;
+      color: #FFFFFF;
+    }
+
+    /* Figma Export Card */
+    .figma-export-box {
+      background: #1F2937;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px dashed #4F46E5;
+    }
+    .figma-export-box h3 {
+      font-size: 13px;
+      color: #A5B4FC;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .figma-export-box p {
+      font-size: 11.5px;
+      color: #9CA3AF;
+      line-height: 1.5;
+    }
+    .export-links {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-dl {
+      background: #374151;
+      color: #FFFFFF;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s ease;
+    }
+    .btn-dl:hover { background: #4F46E5; }
+
+    /* DESIGN SYSTEM VIEW STYLES */
+    .ds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .ds-card {
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .ds-card h3 {
+      font-size: 15px;
+      color: #FFFFFF;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #1F2937;
+      padding-bottom: 8px;
+    }
+
+    /* Color Swatch */
+    .swatch-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .swatch-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1F2937;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #E5E7EB;
+    }
+    .swatch-circle {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .prototype-layout { grid-template-columns: 1fr; }
+      .phone-mockup { width: 100%; max-width: 390px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Global Header -->
+  <header class="header">
+    <div class="header-title">
+      <div class="header-logo">G1</div>
+      <div class="header-text">
+        <h1>Prototipo Interactivo Figma — Unitree G1 HMI</h1>
+        <p>TP Desarrollo de Aplicaciones I — UADE • Sección 3: Diseño y Prototipado en Figma</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="top-nav">
+      <button class="nav-btn active" onclick="switchMainView('proto')">📱 Prototipo Móvil</button>
+      <button class="nav-btn" onclick="switchMainView('map')">🗺️ Mapa de Navegación</button>
+      <button class="nav-btn" onclick="switchMainView('ds')">🧩 Design System &amp; UI Kit</button>
+      <button class="nav-btn" onclick="switchMainView('guide')">📦 Entrega Figma (.SVG)</button>
+    </nav>
+  </header>
+
+  <main class="main-content">
+
+    <!-- ======================================================== -->
+    <!-- VIEW 1: PROTOTIPO INTERACTIVO MÓVIL                      -->
+    <!-- ======================================================== -->
+    <section id="view-proto" class="view-section active">
+      <div class="prototype-layout">
+        
+        <!-- PHONE MOCKUP -->
+        <div class="phone-mockup">
+          <!-- Notch -->
+          <div class="phone-notch">
+            <div class="notch-speaker"></div>
+            <div class="notch-camera"></div>
+          </div>
+
+          <!-- Phone Status Bar -->
+          <div class="phone-status-bar">
+            <span>22:00</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span id="statusBarWifi">📶 WiFi</span>
+              <span id="statusBarBattery">🔋 100%</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Screen Viewport -->
+          <div id="phoneScreen" class="phone-screen">
+            
+            <!-- SCREEN CONTENT INJECTED BY JAVASCRIPT -->
+            <div id="screenContainer"></div>
+
+          </div>
+
+          <!-- Bottom Navigation Bar (Material 3) -->
+          <div class="phone-bottom-bar">
+            <button class="bottom-tab active" id="tabDashboard" onclick="navigateTo('dashboard')">
+              <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+              Supervisión
+            </button>
+            <button class="bottom-tab" id="tabAlerts" onclick="navigateTo('alerts')">
+              <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+              Alertas
+              <span class="badge-tab" id="alertsBadge">2</span>
+            </button>
+            <button class="bottom-tab" id="tabHistory" onclick="navigateTo('history')">
+              <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+              Historial
+            </button>
+            <button class="bottom-tab" id="tabScenarios" onclick="navigateTo('scenarios')">
+              <svg viewBox="0 0 24 24"><path d="M20.8 18.4L15 8V4h1c.55 0 1-.45 1-1s-.45-1-1-1H8c-.55 0-1 .45-1 1s.45 1 1 1h1v4L3.2 18.4C2.45 19.41 3.17 21 4.43 21h15.14c1.26 0 1.98-1.59 1.23-2.6z"/></svg>
+              Escenarios
+            </button>
+            <button class="bottom-tab" id="tabRobot" onclick="navigateTo('robot')">
+              <svg viewBox="0 0 24 24"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+              Unitree G1
+            </button>
+          </div>
+
+          <!-- Bottom Home Indicator -->
+          <div class="phone-home-indicator"></div>
+
+          <!-- Universal Modal (Confirmation / Stop / Done) -->
+          <div class="modal-backdrop" id="universalModal">
+            <div class="modal-card">
+              <div id="modalIcon" style="font-size:32px; margin-bottom:8px;">🛑</div>
+              <h3 id="modalTitle" style="font-size:15px; font-weight:800; color:#0F172A; margin-bottom:6px;">Confirmación</h3>
+              <p id="modalMsg" style="font-size:11.5px; color:#475569; margin-bottom:12px; line-height:1.4;">Mensaje de prueba</p>
+              
+              <div id="modalWarningBox" style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:6px; padding:6px; margin-bottom:12px; font-size:9.5px; color:#B91C1C; font-weight:700; text-align:left;">
+                ⚠️ ADVERTENCIA: La detención de software no reemplaza la parada de emergencia física.
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <button onclick="closeModal()" style="padding:10px; border-radius:8px; border:none; background:#F1F5F9; color:#475569; font-weight:700; font-size:11px; cursor:pointer;">Volver</button>
+                <button id="modalConfirmBtn" onclick="confirmModalAction()" style="padding:10px; border-radius:8px; border:none; background:#DC2626; color:white; font-weight:800; font-size:11px; cursor:pointer;">Confirmar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTROL CONSOLE (INTERACTIVE WALKTHROUGH & STATE SWITCHER) -->
+        <div class="control-console">
+          <div class="console-header">
+            <h2>🕹️ Consola de Control del Prototipo</h2>
+            <p>Comprueba la navegación entre vistas, simula los flujos interactivos y cambia entre los 4 estados visuales exigidos por consigna.</p>
+          </div>
+
+          <!-- Demo Guided Flows -->
+          <div>
+            <h3 style="font-size:12px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">1. Demostración Guiada de Flujos Completos</h3>
+            <div class="flow-btn-group">
+              <button class="btn-flow btn-flow-normal active" id="btnFlowNormal" onclick="startFlow('normal')">
+                <span>🔄 Flujo 1: Normal</span>
+                <span style="font-size:10px; opacity:0.8;">Selección → Misión → Éxito</span>
+              </button>
+              <button class="btn-flow btn-flow-failure" id="btnFlowFailure" onclick="startFlow('failure')">
+                <span>⚠️ Flujo 2: Con Falla</span>
+                <span style="font-size:10px; opacity:0.8;">Fuga Gas / Obstáculo → Repliegue</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Step Tracker -->
+          <div class="flow-stepper" id="flowStepper">
+            <div style="font-size:12px; font-weight:700; color:#FFFFFF; margin-bottom:4px;" id="flowTitle">Flujo 1: Misión de Inspección Normal (Éxito)</div>
+            <div class="step-item active" id="step1">
+              <div class="step-number">1</div>
+              <div class="step-info">
+                <h4>Selección del Robot e Inspección</h4>
+                <p>Verifica ficha técnica de Unitree G1 y selecciona la misión en el panel.</p>
+              </div>
+            </div>
+            <div class="step-item" id="step2">
+              <div class="step-number">2</div>
+              <div class="step-info">
+                <h4>Orden de Inicio (START_MISSION)</h4>
+                <p>Pasa a PENDING → CONFIRMED. Transición a estado PATROLLING.</p>
+              </div>
+            </div>
+            <div class="step-item" id="step3">
+              <div class="step-number">3</div>
+              <div class="step-info">
+                <h4>Supervisión Activa &amp; Telemetría</h4>
+                <p>Avance continuo del 0% al 100% por los 8 waypoints mapeados.</p>
+              </div>
+            </div>
+            <div class="step-item" id="step4">
+              <div class="step-number">4</div>
+              <div class="step-info">
+                <h4>Fin de Misión &amp; Auditoría Local Room</h4>
+                <p>Apertura de diálogo de éxito y registro persistido como COMPLETADA.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stepper Control Buttons -->
+          <div style="display:flex; gap:10px;">
+            <button onclick="prevFlowStep()" style="flex:1; padding:10px; background:#1F2937; border:1px solid #374151; color:#E5E7EB; border-radius:8px; font-weight:700; cursor:pointer;">← Paso Anterior</button>
+            <button onclick="nextFlowStep()" style="flex:1; padding:10px; background:#4F46E5; border:none; color:white; border-radius:8px; font-weight:700; cursor:pointer;">Siguiente Paso →</button>
+          </div>
+
+          <!-- Visual States Toggle (Consigna Estados Visuales) -->
+          <div>
+            <h3 style="font-size:12px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">2. Prueba Directa de Estados Visuales</h3>
+            <div class="state-switcher">
+              <button class="btn-state-toggle active-normal" id="btnStNormal" onclick="setVisualState('normal')">🟢 Normal</button>
+              <button class="btn-state-toggle" id="btnStDisabled" onclick="setVisualState('disabled')">⚪ Deshabilitado</button>
+              <button class="btn-state-toggle" id="btnStWarning" onclick="setVisualState('warning')">🟡 Advertencia</button>
+              <button class="btn-state-toggle" id="btnStError" onclick="setVisualState('error')">🔴 Error / Falla</button>
+            </div>
+          </div>
+
+          <!-- Quick Navigation directly inside Phone -->
+          <div>
+            <h3 style="font-size:12px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">3. Salto Rápido a Pantallas del Prototipo</h3>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
+              <button onclick="navigateTo('robot')" style="padding:6px; background:#1F2937; border:1px solid #374151; color:#CBD5E1; border-radius:6px; font-size:10.5px; cursor:pointer;">1. Ficha Robot</button>
+              <button onclick="navigateTo('dashboard')" style="padding:6px; background:#1F2937; border:1px solid #374151; color:#CBD5E1; border-radius:6px; font-size:10.5px; cursor:pointer;">2. Supervisión</button>
+              <button onclick="openStopModalDirect()" style="padding:6px; background:#1F2937; border:1px solid #374151; color:#CBD5E1; border-radius:6px; font-size:10.5px; cursor:pointer;">3. Modal Parada</button>
+              <button onclick="navigateTo('alerts')" style="padding:6px; background:#1F2937; border:1px solid #374151; color:#CBD5E1; border-radius:6px; font-size:10.5px; cursor:pointer;">4. Alertas &amp; Incidente</button>
+              <button onclick="navigateTo('history')" style="padding:6px; background:#1F2937; border:1px solid #374151; color:#CBD5E1; border-radius:6px; font-size:10.5px; cursor:pointer;">5. Historial Room</button>
+              <button onclick="setVisualState('error')" style="padding:6px; background:#1F2937; border:1px solid #374151; color:#CBD5E1; border-radius:6px; font-size:10.5px; cursor:pointer;">6. Desconexión Red</button>
+            </div>
+          </div>
+
+          <!-- Direct download of SVGs for Figma -->
+          <div class="figma-export-box">
+            <h3>🎨 ¿Cómo llevar esto a Figma?</h3>
+            <p>Se generaron 9 archivos vectoriales SVG editables en <code>figma/export_svg/</code>. Simplemente arrástralos dentro de tu archivo de Figma para tener todas las pantallas y componentes organizados en frames nativos.</p>
+            <div class="export-links">
+              <a href="export_svg/01_seleccion_robot.svg" target="_blank" class="btn-dl">📥 01 Robot.svg</a>
+              <a href="export_svg/02_supervision_standby_misiones.svg" target="_blank" class="btn-dl">📥 02 Standby.svg</a>
+              <a href="export_svg/03_supervision_patrullaje_telemetria.svg" target="_blank" class="btn-dl">📥 03 Telemetría.svg</a>
+              <a href="export_svg/04_control_comandos_modal_paro.svg" target="_blank" class="btn-dl">📥 04 Modal Paro.svg</a>
+              <a href="export_svg/05_alertas_decision_incidente.svg" target="_blank" class="btn-dl">📥 05 Alertas.svg</a>
+              <a href="export_svg/06_historial_auditoria.svg" target="_blank" class="btn-dl">📥 06 Historial.svg</a>
+              <a href="export_svg/07_desconexion_red_stale.svg" target="_blank" class="btn-dl">📥 07 Desconexión.svg</a>
+              <a href="export_svg/08_design_system_componentes.svg" target="_blank" class="btn-dl">📥 08 UI Kit.svg</a>
+              <a href="export_svg/09_mapa_navegacion.svg" target="_blank" class="btn-dl">📥 09 Mapa.svg</a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 2: MAPA DE NAVEGACIÓN Y ARQUITECTURA               -->
+    <!-- ======================================================== -->
+    <section id="view-map" class="view-section">
+      <div style="background:#111827; border:1px solid #1F2937; border-radius:16px; padding:24px; margin-bottom:20px;">
+        <h2 style="font-size:20px; font-weight:800; color:white; margin-bottom:8px;">🗺️ Mapa de Navegación y Flujos Operativos</h2>
+        <p style="color:#9CA3AF; font-size:13px; margin-bottom:20px;">Estructura completa de pantallas, navegación inferior, bifurcación entre Flujo Normal y Flujo con Falla, y modales de confirmación con advertencia de seguridad.</p>
+        
+        <div style="text-align:center; background:#FFFFFF; border-radius:12px; padding:16px; overflow-x:auto;">
+          <img src="export_svg/09_mapa_navegacion.svg" alt="Mapa de Navegación" style="max-width:100%; height:auto; border-radius:8px;">
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 3: DESIGN SYSTEM & COMPONENTES REUTILIZABLES        -->
+    <!-- ======================================================== -->
+    <section id="view-ds" class="view-section">
+      <div style="background:#111827; border:1px solid #1F2937; border-radius:16px; padding:24px; margin-bottom:20px;">
+        <h2 style="font-size:20px; font-weight:800; color:white; margin-bottom:8px;">🧩 UI Kit y Componentes Reutilizables (Design System)</h2>
+        <p style="color:#9CA3AF; font-size:13px; margin-bottom:20px;">Especificación completa de tokens de diseño, paleta de colores semántica y los 4 estados visuales obligatorios (Normal, Deshabilitado, Advertencia y Error).</p>
+        
+        <div style="text-align:center; background:#FFFFFF; border-radius:12px; padding:16px; overflow-x:auto; margin-bottom:24px;">
+          <img src="export_svg/08_design_system_componentes.svg" alt="Design System" style="max-width:100%; height:auto; border-radius:8px;">
+        </div>
+
+        <!-- Design Tokens Documentation -->
+        <div class="ds-grid">
+          <div class="ds-card">
+            <h3>🎨 Paleta de Colores Semántica</h3>
+            <div class="swatch-row">
+              <div class="swatch-item"><div class="swatch-circle" style="background:#4F46E5;"></div>Primary: #4F46E5</div>
+              <div class="swatch-item"><div class="swatch-circle" style="background:#16A34A;"></div>Normal / Success: #16A34A</div>
+              <div class="swatch-item"><div class="swatch-circle" style="background:#D97706;"></div>Warning: #D97706</div>
+              <div class="swatch-item"><div class="swatch-circle" style="background:#DC2626;"></div>Critical / Error: #DC2626</div>
+              <div class="swatch-item"><div class="swatch-circle" style="background:#7C3AED;"></div>Return Base: #7C3AED</div>
+              <div class="swatch-item"><div class="swatch-circle" style="background:#94A3B8;"></div>Disabled: #94A3B8</div>
+            </div>
+          </div>
+
+          <div class="ds-card">
+            <h3>🔤 Tipografía y Jerarquía</h3>
+            <p style="font-size:12px; color:#9CA3AF; line-height:1.6;">
+              • <strong>Display / H1:</strong> Inter Bold 18sp (Títulos de pantalla)<br>
+              • <strong>Card Title / H2:</strong> Inter Bold 13sp - 14sp (Encabezados de tarjetas)<br>
+              • <strong>Body text:</strong> Inter Regular 11.5sp - 12sp (Descripciones y estados)<br>
+              • <strong>Metrics:</strong> Inter ExtraBold 16sp - 18sp (Lecturas numéricas de telemetría)<br>
+              • <strong>Badges &amp; Footers:</strong> Inter SemiBold 9sp - 10sp
+            </p>
+          </div>
+
+          <div class="ds-card">
+            <h3>📐 Componentes Reutilizables Centrales</h3>
+            <p style="font-size:12px; color:#9CA3AF; line-height:1.6;">
+              1. <code>OperationalStateBadge</code>: Insignia dinámica de estado operativo.<br>
+              2. <code>ConnectivityBadge</code> &amp; <code>BatteryBadge</code>: Monitoreo rápido de telemetría.<br>
+              3. <code>ServiceMetricCard</code>: Tarjetas de Gas MQ-2, Temperatura y Personas.<br>
+              4. <code>CommandStatusCard</code>: Ciclo de vida visual (PENDING, CONFIRMED, REJECTED, NO_RESPONSE).<br>
+              5. <code>IncidentDecisionBanner</code>: Banner de toma de decisión ante bloqueos/gas.<br>
+              6. <code>ConfirmDialog</code>: Modal con advertencia de paro físico obligatorio.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 4: GUÍA DE ENTREGA Y CONFIGURACIÓN FIGMA            -->
+    <!-- ======================================================== -->
+    <section id="view-guide" class="view-section">
+      <div style="background:#111827; border:1px solid #1F2937; border-radius:16px; padding:28px;">
+        <h2 style="font-size:22px; font-weight:800; color:white; margin-bottom:10px;">📦 Guía de Entrega e Importación a Figma</h2>
+        <p style="color:#9CA3AF; font-size:13.5px; line-height:1.6; margin-bottom:24px;">
+          Sigue estos sencillos pasos para presentar tu diseño en Figma con la máxima calificación según la consigna:
+        </p>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; margin-bottom:30px;">
+          
+          <div style="background:#1F2937; border-radius:12px; padding:18px; border-left:4px solid #4F46E5;">
+            <h3 style="font-size:15px; font-weight:700; color:#FFFFFF; margin-bottom:6px;">Paso 1: Crear archivo en Figma</h3>
+            <p style="font-size:12px; color:#CBD5E1; line-height:1.5;">
+              Abre <a href="https://www.figma.com" target="_blank" style="color:#818CF8; font-weight:700;">figma.com</a>, crea un <strong>New Design File</strong> y nómbralo:<br>
+              <code>HMI_Unitree_G1_Prototipo_UADE</code>.
+            </p>
+          </div>
+
+          <div style="background:#1F2937; border-radius:12px; padding:18px; border-left:4px solid #10B981;">
+            <h3 style="font-size:15px; font-weight:700; color:#FFFFFF; margin-bottom:6px;">Paso 2: Importar los 9 SVGs</h3>
+            <p style="font-size:12px; color:#CBD5E1; line-height:1.5;">
+              Abre la carpeta <code>d:\androidProjects\unitreeg1hmi99\figma\export_svg\</code> y <strong>arrastra los 9 archivos .svg directamente sobre el lienzo de Figma</strong>. Figma creará automáticamente frames y capas vectoriales editables.
+            </p>
+          </div>
+
+          <div style="background:#1F2937; border-radius:12px; padding:18px; border-left:4px solid #F59E0B;">
+            <h3 style="font-size:15px; font-weight:700; color:#FFFFFF; margin-bottom:6px;">Paso 3: Conectar el Prototipo</h3>
+            <p style="font-size:12px; color:#CBD5E1; line-height:1.5;">
+              Cambia a la pestaña <strong>Prototype</strong> en el panel derecho de Figma. Conecta el botón "Iniciar" del Frame 02 al Frame 03, el botón "Detención Operativa" al Modal Frame 04, y los tabs del Bottom Bar entre sí.
+            </p>
+          </div>
+
+          <div style="background:#1F2937; border-radius:12px; padding:18px; border-left:4px solid #EC4899;">
+            <h3 style="font-size:15px; font-weight:700; color:#FFFFFF; margin-bottom:6px;">Paso 4: Compartir enlace de entrega</h3>
+            <p style="font-size:12px; color:#CBD5E1; line-height:1.5;">
+              Haz clic en <strong>Share</strong> (arriba a la derecha), selecciona <em>"Anyone with the link can view"</em> y copia el enlace público para adjuntarlo en la entrega del TP.
+            </p>
+          </div>
+
+        </div>
+
+        <div style="background:#1E1B4B; border:1px solid #4338CA; border-radius:12px; padding:16px;">
+          <h4 style="font-size:13.5px; font-weight:700; color:#A5B4FC; margin-bottom:6px;">📋 Matriz de Cumplimiento de la Consigna:</h4>
+          <ul style="font-size:12px; color:#C7D2FE; margin-left:20px; line-height:1.7;">
+            <li>✅ <strong>Prototipo navegable:</strong> Vistas interactivas conectadas con Bottom Bar y modales de confirmación.</li>
+            <li>✅ <strong>Mapa de navegación:</strong> Diagrama visual completo exportado en <code>09_mapa_navegacion.svg</code>.</li>
+            <li>✅ <strong>Componentes reutilizables:</strong> UI Kit con badges, métricas, botones y diálogo de seguridad en <code>08_design_system_componentes.svg</code>.</li>
+            <li>✅ <strong>Estados visuales:</strong> Normal (verde/azul), Deshabilitado (gris), Advertencia (amarillo) y Error (rojo).</li>
+            <li>✅ <strong>Todas las vistas:</strong> Selección de robot, supervisión, telemetría, misiones, control, alertas, historial y desconexión.</li>
+            <li>✅ <strong>Los dos flujos obligatorios:</strong> Flujo 1 (Normal exitoso) y Flujo 2 (Con falla / contingencia y repliegue seguro).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // --- ESTADO GLOBAL DE LA SIMULACIÓN ---
+    let appState = {
+      currentTab: 'dashboard',
+      operationalState: 'STANDBY', // STANDBY, PATROLLING, PAUSED, RETURNING_HOME, EMERGENCY_STOP, FAULT
+      connectionState: 'ONLINE',   // ONLINE, OFFLINE
+      batteryPercentage: 92,
+      isCharging: false,
+      smokeGasPpm: 18.2,
+      ambientTemp: 23.4,
+      personsDetected: 0,
+      currentWaypoint: 0,
+      totalWaypoints: 8,
+      missionProgress: 0,
+      activeMissionName: 'Inspección Crítica: Servidores y Tableros',
+      isDataStale: false,
+      lastCommand: { name: 'SISTEMA_LISTO', status: 'CONFIRMED', text: 'Robot listo en estación base' },
+      activeAlerts: [
+        { id: 1, severity: 'CRITICAL', code: 'GAS_LEAK_DETECTED', msg: 'Gas crítico: 88.5 ppm en WP4', acknowledged: false },
+        { id: 2, severity: 'WARNING', code: 'OBSTACLE_PERSISTENT', msg: 'Bloqueo en pasillo por carro', acknowledged: false }
+      ],
+      currentFlow: 'normal',
+      flowStep: 1
+    };
+
+    let patrolTimer = null;
+
+    // --- RENDERIZADO PRINCIPAL DE LA PANTALLA MÓVIL ---
+    function renderPhone() {
+      const container = document.getElementById('screenContainer');
+      const s = appState;
+
+      // Update status bar
+      document.getElementById('statusBarWifi').innerHTML = s.connectionState === 'ONLINE' ? '📶 WiFi' : '❌ Sin Red';
+      document.getElementById('statusBarBattery').innerHTML = `🔋 ${s.batteryPercentage}%`;
+
+      // Update Alerts badge
+      const unackCount = s.activeAlerts.filter(a => !a.acknowledged).length;
+      const badgeElem = document.getElementById('alertsBadge');
+      if (unackCount > 0) {
+        badgeElem.style.display = 'inline-block';
+        badgeElem.innerText = unackCount;
+      } else {
+        badgeElem.style.display = 'none';
+      }
+
+      // Update Bottom Bar active class
+      document.querySelectorAll('.bottom-tab').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('tab' + capitalize(s.currentTab));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (s.currentTab === 'dashboard') {
+        container.innerHTML = getDashboardHTML();
+      } else if (s.currentTab === 'alerts') {
+        container.innerHTML = getAlertsHTML();
+      } else if (s.currentTab === 'history') {
+        container.innerHTML = getHistoryHTML();
+      } else if (s.currentTab === 'scenarios') {
+        container.innerHTML = getScenariosHTML();
+      } else if (s.currentTab === 'robot') {
+        container.innerHTML = getRobotHTML();
+      }
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    // --- HTML DE DASHBOARD (SUPERVISIÓN, TELEMETRÍA, COMANDOS) ---
+    function getDashboardHTML() {
+      const s = appState;
+      const isOnline = s.connectionState === 'ONLINE';
+      const isPatrolling = s.operationalState === 'PATROLLING';
+      const isPaused = s.operationalState === 'PAUSED';
+      const isStandby = s.operationalState === 'STANDBY';
+      const isReturning = s.operationalState === 'RETURNING_HOME';
+
+      const canStart = isOnline && isStandby && s.batteryPercentage > 15;
+      const canPause = isOnline && isPatrolling;
+      const canResume = isOnline && isPaused;
+      const canCancel = isOnline && (isPatrolling || isPaused);
+      const canReturn = isOnline && (!isStandby || s.currentWaypoint > 0);
+
+      // Status badge styles
+      let opBadgeClass = 'badge-standby';
+      let opBadgeText = 'EN REPOSO';
+      if (isPatrolling) { opBadgeClass = 'badge-patrolling'; opBadgeText = 'PATRULLANDO'; }
+      else if (isPaused) { opBadgeClass = 'badge-paused'; opBadgeText = 'PAUSADO'; }
+      else if (isReturning) { opBadgeClass = 'badge-returning'; opBadgeText = 'A BASE'; }
+      else if (s.operationalState === 'EMERGENCY_STOP' || s.operationalState === 'FAULT') {
+        opBadgeClass = 'badge-offline'; opBadgeText = 'PARADA / FAULT';
+      }
+
+      let html = `
+        <div class="screen-header">
+          <div>
+            <div class="screen-title">HMI Unitree G1 - Supervisión</div>
+            <div class="screen-subtitle">Robot: Unitree G1 (UADE-G1-01)</div>
+          </div>
+          <span class="status-badge ${opBadgeClass}">● ${opBadgeText}</span>
+        </div>
+
+        <div class="content-body">
+          <!-- Quick status row -->
+          <div class="quick-status-row">
+            <div class="status-mini-card ${isOnline ? 'badge-online' : 'badge-offline'}">
+              <span style="font-size:18px;">${isOnline ? '📶' : '⚠️'}</span>
+              <div>
+                <div style="font-size:10px; font-weight:800;">${isOnline ? 'CONECTADO' : 'OFFLINE'}</div>
+                <div style="font-size:9px;">${isOnline ? '-58 dBm • Lat 18ms' : 'Enlace Perdido'}</div>
+              </div>
+            </div>
+
+            <div class="status-mini-card ${s.batteryPercentage > 15 ? 'badge-online' : 'badge-paused'}">
+              <span style="font-size:18px;">🔋</span>
+              <div>
+                <div style="font-size:10px; font-weight:800;">${s.batteryPercentage}% (24.8V)</div>
+                <div style="font-size:9px;">${s.isCharging ? '⚡ En Base' : 'Consumo: 1.2A'}</div>
+              </div>
+            </div>
+          </div>
+      `;
+
+      // Banner de desconexión
+      if (!isOnline || s.isDataStale) {
+        html += `
+          <div style="background:#FEE2E2; border:1.5px solid #EF4444; border-radius:10px; padding:10px; display:flex; gap:8px; align-items:center;">
+            <span style="font-size:20px; color:#DC2626;">⚠️</span>
+            <div style="font-size:10.5px; color:#991B1B; font-weight:700;">
+              ATENCIÓN: Telemetría congelada por pérdida de enlace WiFi. Comandos en timeout.
+            </div>
+          </div>
+        `;
+      }
+
+      // Banner de incidente si hay alertas no reconocidas
+      const unackAlerts = s.activeAlerts.filter(a => !a.acknowledged);
+      if (unackAlerts.length > 0) {
+        html += `
+          <div class="incident-banner">
+            <div class="incident-title">⚠️ INCIDENTE DETECTADO - INTERVENCIÓN REQUERIDA</div>
+            <div class="incident-desc">${unackAlerts[0].msg}. El robot frena preventivamente.</div>
+            <div class="incident-actions">
+              <button onclick="resolveIncident('resume')" style="background:#16A34A; color:white; border:none; padding:7px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">▶ Reanudar</button>
+              <button onclick="resolveIncident('cancel')" style="background:#DC2626; color:white; border:none; padding:7px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">✕ Cancelar</button>
+              <button onclick="resolveIncident('return')" style="background:#7C3AED; color:white; border:none; padding:7px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">⌂ A Base</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Si está en reposo, mostrar selector de misiones
+      if (isStandby) {
+        html += `
+          <div class="ui-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="ui-card-title" style="color:#4F46E5;">Seleccionar Misión de Inspección</div>
+              <span style="font-size:10px; font-weight:700; color:#4F46E5;">~15 min</span>
+            </div>
+            
+            <div class="mission-select-card selected" onclick="selectMission(1)">
+              <div style="font-size:11.5px; font-weight:700; color:#1E1B4B;">1. Inspección Crítica: Servidores y Tableros</div>
+              <div style="font-size:10px; color:#64748B;">Pabellón A, Hall, Lab IoT y Tablero B (8 Waypoints)</div>
+            </div>
+
+            <div class="mission-select-card" onclick="selectMission(2)">
+              <div style="font-size:11.5px; font-weight:600; color:#334155;">2. Ronda Perimetral Ligera (Aulas 101-105)</div>
+              <div style="font-size:10px; color:#64748B;">Control nocturno de accesos (4 Waypoints)</div>
+            </div>
+          </div>
+        `;
+      } else {
+        // En marcha o regresando: Barra de Progreso de Misión
+        html += `
+          <div class="ui-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:12px; font-weight:800; color:#0F172A;">${s.activeMissionName}</div>
+              <div style="font-size:13px; font-weight:800; color:#4F46E5;">${Math.round(s.missionProgress)}%</div>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" style="width: ${s.missionProgress}%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#475569; margin-top:4px;">
+              <span>📍 WP ${s.currentWaypoint} / ${s.totalWaypoints}</span>
+              <span>Vel: ${isPatrolling ? '0.75 m/s' : '0.00 m/s'}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Las 3 Variables de Servicio de Inspección Ambiental
+      html += `
+        <div>
+          <div style="font-size:11.5px; font-weight:700; color:#0F172A; margin-bottom:6px;">Variables del Servicio (Inspección Ambiental)</div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-title">Gas / Humo</div>
+              <div class="metric-val" style="color: ${s.smokeGasPpm > 50 ? '#DC2626' : '#0F172A'}">${s.smokeGasPpm} <span style="font-size:9px;">ppm</span></div>
+              <span class="metric-tag ${s.smokeGasPpm > 50 ? 'metric-tag-err' : 'metric-tag-ok'}">${s.smokeGasPpm > 50 ? 'PELIGRO' : 'NORMAL'}</span>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-title">Temperatura</div>
+              <div class="metric-val" style="color: ${s.ambientTemp > 40 ? '#DC2626' : '#0F172A'}">${s.ambientTemp} <span style="font-size:9px;">°C</span></div>
+              <span class="metric-tag ${s.ambientTemp > 40 ? 'metric-tag-err' : 'metric-tag-ok'}">${s.ambientTemp > 40 ? 'ALERTA' : 'ESTABLE'}</span>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-title">Personas</div>
+              <div class="metric-val">${s.personsDetected} <span style="font-size:9px;">det.</span></div>
+              <span class="metric-tag metric-tag-ok">DESPEJADO</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Comandos de Control (HMI)
+      html += `
+        <div>
+          <div style="font-size:11.5px; font-weight:700; color:#0F172A; margin-bottom:6px;">Comandos de Operación (HMI)</div>
+          
+          <!-- Fila 1 -->
+          <div class="btn-group-row" style="margin-bottom:6px;">
+            <button class="btn-action ${canStart ? 'btn-start' : 'btn-disabled'}" onclick="${canStart ? 'sendCommand(\\'START_MISSION\\')' : ''}">▶ Iniciar</button>
+            <button class="btn-action ${canPause ? 'btn-pause' : 'btn-disabled'}" onclick="${canPause ? 'sendCommand(\\'PAUSE_MISSION\\')' : ''}">⏸ Pausar</button>
+            <button class="btn-action ${canResume ? 'btn-resume' : 'btn-disabled'}" onclick="${canResume ? 'sendCommand(\\'RESUME_MISSION\\')' : ''}">⏯ Reanudar</button>
+          </div>
+
+          <!-- Fila 2 -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px;">
+            <button class="btn-action ${canCancel ? 'btn-cancel' : 'btn-disabled'}" onclick="${canCancel ? 'openCancelModal()' : ''}">✕ Cancelar Misión</button>
+            <button class="btn-action ${canReturn ? 'btn-return' : 'btn-disabled'}" onclick="${canReturn ? 'sendCommand(\\'RETURN_TO_SAFE_POINT\\')' : ''}">⌂ Regreso Seguro</button>
+          </div>
+
+          <!-- Fila 3: Paro Crítico -->
+          <button class="btn-stop-critical ${isOnline ? '' : 'btn-disabled'}" onclick="${isOnline ? 'openEmergencyModal()' : ''}">
+            🛑 DETENCIÓN OPERATIVA (SOFTWARE)
+          </button>
+        </div>
+
+        <!-- Estado de Última Orden -->
+        <div class="ui-card" style="padding:10px 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:11px; font-weight:700; color:#0F172A;">Última Orden: ${s.lastCommand.name}</div>
+            <span class="status-badge ${s.lastCommand.status === 'CONFIRMED' ? 'badge-online' : (s.lastCommand.status === 'PENDING' ? 'badge-paused' : 'badge-offline')}">
+              ${s.lastCommand.status}
+            </span>
+          </div>
+          <div style="font-size:9.5px; color:#64748B; margin-top:2px;">${s.lastCommand.text}</div>
+        </div>
+
+      </div>
+      `;
+      return html;
+    }
+
+    // --- HTML DE ALERTAS SCREEN ---
+    function getAlertsHTML() {
+      const s = appState;
+      let html = `
+        <div class="screen-header">
+          <div>
+            <div class="screen-title">Centro de Alertas (${s.activeAlerts.length})</div>
+            <div class="screen-subtitle">Contingencias y toma de conocimiento</div>
+          </div>
+          <button onclick="ackAllAlerts()" style="background:#4F46E5; color:white; border:none; padding:5px 10px; border-radius:12px; font-size:10px; font-weight:700; cursor:pointer;">✓ Reconocer Todas</button>
+        </div>
+        <div class="content-body">
+      `;
+
+      if (s.activeAlerts.length === 0) {
+        html += `
+          <div style="text-align:center; padding:40px 20px; color:#64748B;">
+            <div style="font-size:36px; margin-bottom:10px;">🛡️</div>
+            <div style="font-size:13px; font-weight:700; color:#0F172A;">Sin Alertas Activas</div>
+            <div style="font-size:11px;">El sistema no registra contingencias en este momento.</div>
+          </div>
+        `;
+      } else {
+        s.activeAlerts.forEach(a => {
+          const isCrit = a.severity === 'CRITICAL';
+          html += `
+            <div class="ui-card" style="border-left: 4px solid ${isCrit ? '#DC2626' : '#D97706'};">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="status-badge ${isCrit ? 'badge-offline' : 'badge-paused'}">${a.severity}</span>
+                <span style="font-size:9.5px; color:#64748B;">${a.code}</span>
+              </div>
+              <div style="font-size:12px; font-weight:700; color:#0F172A; margin:8px 0 4px 0;">${a.msg}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                <span style="font-size:9.5px; color:#64748B;">Estado: ${a.acknowledged ? '✓ Reconocida' : '⚠️ Pendiente'}</span>
+                ${!a.acknowledged ? `<button onclick="ackAlert(${a.id})" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#DC2626; padding:4px 8px; border-radius:6px; font-size:9.5px; font-weight:700; cursor:pointer;">Acusar Recibo</button>` : ''}
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    // --- HTML DE HISTORIAL SCREEN (ROOM DB) ---
+    function getHistoryHTML() {
+      return `
+        <div class="screen-header">
+          <div>
+            <div class="screen-title">Auditoría e Historial Room</div>
+            <div class="screen-subtitle">Base de datos local: unitree_g1_hmi.db</div>
+          </div>
+        </div>
+        <div class="content-body">
+          <div style="display:flex; background:#E2E8F0; border-radius:8px; padding:3px;">
+            <button style="flex:1; padding:6px; background:white; border:none; border-radius:6px; font-size:11px; font-weight:700; color:#4F46E5;">Misiones (Room DB)</button>
+            <button style="flex:1; padding:6px; background:transparent; border:none; border-radius:6px; font-size:11px; font-weight:600; color:#64748B;">Logs de Eventos</button>
+          </div>
+
+          <!-- Misión 1 (Completada) -->
+          <div class="ui-card" style="border-left: 4px solid #16A34A;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="status-badge badge-online">COMPLETADA</span>
+              <span style="font-size:9.5px; color:#64748B;">Hoy, 21:30</span>
+            </div>
+            <div style="font-size:12px; font-weight:700; color:#0F172A; margin-top:4px;">Ronda Nocturna Aulas 101-105</div>
+            <div style="font-size:10px; color:#475569; margin-top:4px; line-height:1.4;">
+              Duración: 14m 20s • Waypoints: 8/8 • Gas máx: 18.2 ppm<br>
+              <span style="color:#16A34A; font-weight:600;">✓ Inspección completada sin incidentes</span>
+            </div>
+          </div>
+
+          <!-- Misión 2 (Abortada por Incidente) -->
+          <div class="ui-card" style="border-left: 4px solid #DC2626;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="status-badge badge-offline">ABORTADA</span>
+              <span style="font-size:9.5px; color:#64748B;">Hoy, 20:15</span>
+            </div>
+            <div style="font-size:12px; font-weight:700; color:#0F172A; margin-top:4px;">Inspección Servidores y Tablero B</div>
+            <div style="font-size:10px; color:#475569; margin-top:4px; line-height:1.4;">
+              Duración: 06m 45s • Waypoints: 4/8 • Pico Gas: 92.4 ppm<br>
+              <span style="color:#DC2626; font-weight:600;">⚠️ Fuga de gas detectada: repliegue de seguridad</span>
+            </div>
+          </div>
+
+          <div style="background:#F1F5F9; border-radius:8px; padding:8px; font-size:10px; color:#64748B; text-align:center;">
+            💾 Persistencia Room garantizada 100% offline sin conectividad.
+          </div>
+        </div>
+      `;
+    }
+
+    // --- HTML DE ESCENARIOS SCREEN (LOS 5 OBLIGATORIOS) ---
+    function getScenariosHTML() {
+      return `
+        <div class="screen-header">
+          <div>
+            <div class="screen-title">Escenarios de Evaluación (TP)</div>
+            <div class="screen-subtitle">Demostración interactiva en 1 clic</div>
+          </div>
+        </div>
+        <div class="content-body">
+          <div class="ui-card" onclick="triggerScenario(1)" style="cursor:pointer;">
+            <div style="font-size:12px; font-weight:700; color:#16A34A;">Escenario 1 — Misión Normal</div>
+            <div style="font-size:10.5px; color:#64748B; margin-top:2px;">Recorrido completo de waypoints 1 al 8 sin fallas.</div>
+          </div>
+
+          <div class="ui-card" onclick="triggerScenario(2)" style="cursor:pointer;">
+            <div style="font-size:12px; font-weight:700; color:#D97706;">Escenario 2 — Batería Baja (12%)</div>
+            <div style="font-size:10.5px; color:#64748B; margin-top:2px;">Bloqueo de inicio de ronda y retorno sugerido a base.</div>
+          </div>
+
+          <div class="ui-card" onclick="triggerScenario(3)" style="cursor:pointer;">
+            <div style="font-size:12px; font-weight:700; color:#DC2626;">Escenario 3 — Desconexión de Red</div>
+            <div style="font-size:10.5px; color:#64748B; margin-top:2px;">Telemetría congelada (stale) y timeout en órdenes.</div>
+          </div>
+
+          <div class="ui-card" onclick="triggerScenario(4)" style="cursor:pointer;">
+            <div style="font-size:12px; font-weight:700; color:#D97706;">Escenario 4 — Incidente por Obstáculo</div>
+            <div style="font-size:10.5px; color:#64748B; margin-top:2px;">Bloqueo >10s y banner de decisión operativa.</div>
+          </div>
+
+          <div class="ui-card" onclick="triggerScenario(5)" style="cursor:pointer;">
+            <div style="font-size:12px; font-weight:700; color:#B91C1C;">Escenario 5 — Fuga de Gas Crítica (88 ppm)</div>
+            <div style="font-size:10.5px; color:#64748B; margin-top:2px;">Parada preventiva de software y acuse de alerta.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- HTML DE ROBOT SELECTION SCREEN ---
+    function getRobotHTML() {
+      return `
+        <div class="screen-header">
+          <div>
+            <div class="screen-title">Ficha Técnica: Unitree G1</div>
+            <div class="screen-subtitle">Plataforma Robótica Humanoide Bípeda</div>
+          </div>
+        </div>
+        <div class="content-body">
+          <div style="background:#EEF2FF; border:1.5px solid #C7D2FE; border-radius:12px; padding:12px; display:flex; gap:12px; align-items:center;">
+            <div style="width:50px; height:50px; border-radius:50%; background:#4F46E5; display:flex; align-items:center; justify-content:center; font-size:24px; color:white;">🤖</div>
+            <div>
+              <div style="font-size:14px; font-weight:800; color:#1E1B4B;">Unitree G1 (Humanoid)</div>
+              <div style="font-size:10px; font-weight:700; color:#16A34A;">✓ VINCULADO AL SISTEMA HMI</div>
+              <div style="font-size:9.5px; color:#475569; margin-top:2px;">Batería: 9000 mAh • 23 - 43 DoF • 35 kg</div>
+            </div>
+          </div>
+
+          <div class="ui-card">
+            <div class="ui-card-title">Justificación G1 vs Go2 (Humanoide vs Cuadrúpedo)</div>
+            <div style="font-size:10.5px; color:#475569; line-height:1.5;">
+              • Silueta bípeda más amigable y aceptada en edificios educativos y corporativos.<br>
+              • Inspección a la altura de los ojos humanos (1.20m): tableros eléctricos, extintores y señalización.
+            </div>
+          </div>
+
+          <div class="ui-card">
+            <div class="ui-card-title">Sensores y Carga Útil</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:10px; margin-top:6px;">
+              <div style="background:#F1F5F9; padding:8px; border-radius:6px;">
+                <strong>Nativos:</strong><br>• LiDAR 3D SLAM<br>• RealSense Depth<br>• IMU balance 6 ejes
+              </div>
+              <div style="background:#FEF3C7; padding:8px; border-radius:6px; color:#92400E;">
+                <strong>Servicio:</strong><br>• Sensor Gas MQ-2<br>• Pirómetro Térmico IR<br>• Radio RF largo alcance
+              </div>
+            </div>
+          </div>
+
+          <button onclick="navigateTo('dashboard')" style="background:#4F46E5; color:white; border:none; padding:12px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer;">
+            Ir al Panel de Supervisión →
+          </button>
+        </div>
+      `;
+    }
+
+    // --- ACCIONES Y COMANDOS DEL OPERADOR ---
+    function navigateTo(tab) {
+      appState.currentTab = tab;
+      renderPhone();
+    }
+
+    function sendCommand(cmdType) {
+      const s = appState;
+      if (s.connectionState === 'OFFLINE') {
+        s.lastCommand = { name: cmdType, status: 'NO_RESPONSE', text: 'Timeout: el robot no responde por desconexión' };
+        renderPhone();
+        return;
+      }
+
+      s.lastCommand = { name: cmdType, status: 'PENDING', text: 'Enviando orden al controlador del G1...' };
+      renderPhone();
+
+      setTimeout(() => {
+        s.lastCommand = { name: cmdType, status: 'CONFIRMED', text: 'Orden aceptada y confirmada por cinemática' };
+
+        if (cmdType === 'START_MISSION') {
+          s.operationalState = 'PATROLLING';
+          startPatrolSimulation();
+        } else if (cmdType === 'PAUSE_MISSION') {
+          s.operationalState = 'PAUSED';
+          clearInterval(patrolTimer);
+        } else if (cmdType === 'RESUME_MISSION') {
+          s.operationalState = 'PATROLLING';
+          startPatrolSimulation();
+        } else if (cmdType === 'CANCEL_MISSION') {
+          s.operationalState = 'STANDBY';
+          s.missionProgress = 0;
+          s.currentWaypoint = 0;
+          clearInterval(patrolTimer);
+        } else if (cmdType === 'RETURN_TO_SAFE_POINT') {
+          s.operationalState = 'RETURNING_HOME';
+          clearInterval(patrolTimer);
+          startReturnHomeSimulation();
+        } else if (cmdType === 'OPERATIONAL_STOP') {
+          s.operationalState = 'EMERGENCY_STOP';
+          clearInterval(patrolTimer);
+        }
+        renderPhone();
+      }, 400);
+    }
+
+    function startPatrolSimulation() {
+      clearInterval(patrolTimer);
+      patrolTimer = setInterval(() => {
+        if (appState.operationalState !== 'PATROLLING') return;
+
+        appState.missionProgress += 2.5;
+        appState.currentWaypoint = Math.min(8, Math.floor((appState.missionProgress / 100) * 8) + 1);
+        appState.batteryPercentage = Math.max(10, appState.batteryPercentage - 0.2);
+
+        // Flujo con falla: a mitad de camino disparar incidente
+        if (appState.currentFlow === 'failure' && appState.missionProgress >= 45 && appState.smokeGasPpm < 50) {
+          clearInterval(patrolTimer);
+          appState.smokeGasPpm = 88.5;
+          appState.ambientTemp = 44.2;
+          appState.operationalState = 'PAUSED';
+          appState.activeAlerts.unshift({
+            id: Date.now(),
+            severity: 'CRITICAL',
+            code: 'GAS_LEAK_DETECTED',
+            msg: 'Fuga de gas crítica detectada en Sala Servidores (88.5 ppm)',
+            acknowledged: false
+          });
+          renderPhone();
+          updateStepper();
+          return;
+        }
+
+        if (appState.missionProgress >= 100) {
+          appState.missionProgress = 100;
+          appState.operationalState = 'STANDBY';
+          clearInterval(patrolTimer);
+          showModal('🎉', '¡Misión Finalizada con Éxito!', 'Se recorrieron los 8 waypoints nominalmente. Datos persistidos en Room.', 'Aceptar', () => {
+            closeModal();
+            navigateTo('history');
+          });
+        }
+        renderPhone();
+      }, 350);
+    }
+
+    function startReturnHomeSimulation() {
+      patrolTimer = setInterval(() => {
+        if (appState.operationalState !== 'RETURNING_HOME') return;
+        appState.missionProgress -= 4;
+        if (appState.missionProgress <= 0) {
+          appState.missionProgress = 0;
+          appState.currentWaypoint = 0;
+          appState.operationalState = 'STANDBY';
+          appState.isCharging = true;
+          clearInterval(patrolTimer);
+          showModal('⚡', 'Robot en Estación Base', 'El Unitree G1 ha llegado a salvo y está recargando batería.', 'Entendido', closeModal);
+        }
+        renderPhone();
+      }, 300);
+    }
+
+    function resolveIncident(action) {
+      ackAllAlerts();
+      if (action === 'resume') {
+        appState.smokeGasPpm = 19.5;
+        sendCommand('RESUME_MISSION');
+      } else if (action === 'cancel') {
+        sendCommand('CANCEL_MISSION');
+      } else if (action === 'return') {
+        sendCommand('RETURN_TO_SAFE_POINT');
+      }
+    }
+
+    function ackAlert(id) {
+      const a = appState.activeAlerts.find(x => x.id === id);
+      if (a) a.acknowledged = true;
+      renderPhone();
+    }
+
+    function ackAllAlerts() {
+      appState.activeAlerts.forEach(a => a.acknowledged = true);
+      renderPhone();
+    }
+
+    // --- MODALES DE CONFIRMACIÓN CON AVISO DE PARO FÍSICO ---
+    let modalActionCallback = null;
+
+    function showModal(icon, title, msg, btnText, onConfirm) {
+      document.getElementById('modalIcon').innerText = icon;
+      document.getElementById('modalTitle').innerText = title;
+      document.getElementById('modalMsg').innerText = msg;
+      document.getElementById('modalConfirmBtn').innerText = btnText;
+      modalActionCallback = onConfirm;
+      document.getElementById('universalModal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('universalModal').classList.remove('show');
+    }
+
+    function confirmModalAction() {
+      if (modalActionCallback) modalActionCallback();
+    }
+
+    function openEmergencyModal() {
+      showModal('🛑', 'Confirmar Detención Operativa', '¿Desea detener inmediatamente todos los actuadores del Unitree G1 por software?', 'Detener Robot', () => {
+        closeModal();
+        sendCommand('OPERATIONAL_STOP');
+      });
+    }
+
+    function openStopModalDirect() {
+      navigateTo('dashboard');
+      openEmergencyModal();
+    }
+
+    function openCancelModal() {
+      showModal('✕', 'Cancelar Misión en Curso', '¿Está seguro de abortar la ronda de patrullaje? El robot quedará en reposo en su posición actual.', 'Sí, Cancelar', () => {
+        closeModal();
+        sendCommand('CANCEL_MISSION');
+      });
+    }
+
+    // --- CAMBIO DE ESTADOS VISUALES (CONSIGNA SECCIÓN 3) ---
+    function setVisualState(state) {
+      document.querySelectorAll('.btn-state-toggle').forEach(b => {
+        b.className = 'btn-state-toggle';
+      });
+
+      if (state === 'normal') {
+        document.getElementById('btnStNormal').classList.add('active-normal');
+        appState.connectionState = 'ONLINE';
+        appState.batteryPercentage = 90;
+        appState.smokeGasPpm = 18.2;
+        appState.ambientTemp = 23.4;
+        appState.operationalState = 'STANDBY';
+        appState.isDataStale = false;
+        appState.activeAlerts = [];
+      } else if (state === 'disabled') {
+        document.getElementById('btnStDisabled').classList.add('active-disabled');
+        appState.batteryPercentage = 12; // Batería baja inhabilita inicio
+        appState.operationalState = 'STANDBY';
+        appState.activeAlerts = [{ id: 9, severity: 'WARNING', code: 'BATTERY_LOW', msg: 'Batería baja (12%). Rondas inhabilitadas.', acknowledged: false }];
+      } else if (state === 'warning') {
+        document.getElementById('btnStWarning').classList.add('active-warning');
+        appState.operationalState = 'PAUSED';
+        appState.activeAlerts = [{ id: 8, severity: 'WARNING', code: 'OBSTACLE_PERSISTENT', msg: 'Obstáculo en pasillo (>10s). Marcha pausada.', acknowledged: false }];
+      } else if (state === 'error') {
+        document.getElementById('btnStError').classList.add('active-error');
+        appState.connectionState = 'OFFLINE';
+        appState.isDataStale = true;
+        appState.operationalState = 'FAULT';
+        appState.activeAlerts = [{ id: 7, severity: 'CRITICAL', code: 'CONNECTION_LOST', msg: 'Pérdida de enlace WiFi con Unitree G1', acknowledged: false }];
+      }
+      renderPhone();
+    }
+
+    // --- NAVEGADOR DE FLUJOS GUIADOS (NORMAL VS CON FALLA) ---
+    function startFlow(flowType) {
+      appState.currentFlow = flowType;
+      appState.flowStep = 1;
+      document.getElementById('btnFlowNormal').classList.toggle('active', flowType === 'normal');
+      document.getElementById('btnFlowFailure').classList.toggle('active', flowType === 'failure');
+
+      if (flowType === 'normal') {
+        document.getElementById('flowTitle').innerText = 'Flujo 1: Misión de Inspección Normal (Éxito)';
+        document.getElementById('step3').querySelector('h4').innerText = 'Supervisión Activa & Telemetría';
+        document.getElementById('step3').querySelector('p').innerText = 'Avance continuo del 0% al 100% por los 8 waypoints mapeados.';
+        document.getElementById('step4').querySelector('h4').innerText = 'Fin de Misión & Auditoría Room';
+        document.getElementById('step4').querySelector('p').innerText = 'Apertura de diálogo de éxito y registro persistido como COMPLETADA.';
+        setVisualState('normal');
+        navigateTo('robot');
+      } else {
+        document.getElementById('flowTitle').innerText = 'Flujo 2: Contingencia y Falla (Fuga de Gas y Repliegue)';
+        document.getElementById('step3').querySelector('h4').innerText = 'Detección de Fuga de Gas (88 ppm)';
+        document.getElementById('step3').querySelector('p').innerText = 'Alarma crítica y parada preventiva de seguridad.';
+        document.getElementById('step4').querySelector('h4').innerText = 'Decisión HRI: Repliegue Seguro';
+        document.getElementById('step4').querySelector('p').innerText = 'Operador acusa recibo y ordena regreso a base.';
+        setVisualState('normal');
+        navigateTo('dashboard');
+      }
+      updateStepper();
+    }
+
+    function nextFlowStep() {
+      if (appState.flowStep < 4) {
+        appState.flowStep++;
+        executeFlowStepAction();
+        updateStepper();
+      }
+    }
+
+    function prevFlowStep() {
+      if (appState.flowStep > 1) {
+        appState.flowStep--;
+        executeFlowStepAction();
+        updateStepper();
+      }
+    }
+
+    function executeFlowStepAction() {
+      const step = appState.flowStep;
+      const isNormal = appState.currentFlow === 'normal';
+
+      if (step === 1) {
+        navigateTo('robot');
+      } else if (step === 2) {
+        navigateTo('dashboard');
+        sendCommand('START_MISSION');
+      } else if (step === 3) {
+        navigateTo('dashboard');
+        if (!isNormal) {
+          appState.smokeGasPpm = 88.5;
+          appState.operationalState = 'PAUSED';
+          appState.activeAlerts = [{ id: 99, severity: 'CRITICAL', code: 'GAS_LEAK_DETECTED', msg: 'Fuga crítica: 88.5 ppm en WP4', acknowledged: false }];
+          renderPhone();
+        }
+      } else if (step === 4) {
+        if (isNormal) {
+          navigateTo('history');
+        } else {
+          resolveIncident('return');
+        }
+      }
+    }
+
+    function updateStepper() {
+      for (let i = 1; i <= 4; i++) {
+        const item = document.getElementById('step' + i);
+        item.classList.remove('active', 'completed');
+        if (i === appState.flowStep) {
+          item.classList.add('active');
+        } else if (i < appState.flowStep) {
+          item.classList.add('completed');
+        }
+      }
+    }
+
+    function triggerScenario(num) {
+      if (num === 1) {
+        startFlow('normal');
+        nextFlowStep();
+      } else if (num === 2) {
+        setVisualState('disabled');
+        navigateTo('dashboard');
+      } else if (num === 3) {
+        setVisualState('error');
+        navigateTo('dashboard');
+      } else if (num === 4) {
+        setVisualState('warning');
+        navigateTo('dashboard');
+      } else if (num === 5) {
+        startFlow('failure');
+        appState.flowStep = 3;
+        executeFlowStepAction();
+        updateStepper();
+      }
+    }
+
+    // --- SWITCH PRINCIPAL DE VISTAS (HEADER TABS) ---
+    function switchMainView(viewId) {
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-' + viewId).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // Inicializar app
+    renderPhone();
+  </script>
+</body>
+</html>
+'''
+
+with open(HTML_PATH, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print(f"Prototipo Interactivo generado en: {HTML_PATH}")
