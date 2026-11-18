@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.UUID
+import kotlin.math.atan2
+import kotlin.math.hypot
 import kotlin.random.Random
 
 class SimulatedRobotRepository(
@@ -67,6 +69,17 @@ class SimulatedRobotRepository(
     private var maxRecordedGas: Double = 14.2
     private var maxRecordedTemp: Double = 21.5
 
+    // Estado cinemático (protegido por simLock: lo tocan el ticker y los comandos)
+    private val simLock = Any()
+    private val routeQueue = ArrayDeque<Waypoint>()   // waypoints pendientes de alcanzar
+    private var currentRoute: List<Waypoint> = waypoints
+    private var pathTotalDistance = 0f                // longitud de la ruta activa (m)
+    private var returnStartProgress = 0f              // progreso al iniciar el retorno a base
+    private var reachedCount = 0                      // waypoints de la misión ya alcanzados
+    private var dwellRemainingSec = 0f                // pausa de inspección en el waypoint actual
+    private var batteryAccum = 0f                     // fracción de % de batería acumulada
+    private var tickCounter = 0L
+
     private var simulationTickerJob: Job? = null
 
     init {
@@ -78,36 +91,142 @@ class SimulatedRobotRepository(
         simulationTickerJob?.cancel()
         simulationTickerJob = scope.launch {
             while (isActive) {
-                delay(1000L)
+                delay(TICK_MS)
                 tickSimulation()
             }
         }
     }
 
-    private suspend fun tickSimulation() {
+    private fun tickSimulation() = synchronized(simLock) {
         if (isForcedOffline) {
             // Cuando está desconectado, congelamos los datos y marcamos como antiguo (stale)
             _telemetry.value = _telemetry.value.copy(
                 connectionState = ConnectionState.OFFLINE,
                 isDataStale = true
             )
-            return
+            return@synchronized
         }
 
         val current = _telemetry.value
         val now = System.currentTimeMillis()
+        tickCounter++
+        val isSlowTick = tickCounter % SLOW_TICK_EVERY == 0L
+        val dtSim = TICK_SECONDS * TIME_SCALE
 
-        // 1. Desgaste y recarga de batería en base
-        val isAtBase = current.zoneName.contains("Base")
-        val isCharging = isAtBase && (current.operationalState == OperationalState.STANDBY)
-        val newBattery = when {
-            isCharging -> {
-                if (current.batteryPercentage < 100) (current.batteryPercentage + 2).coerceAtMost(100) else 100
+        // 1. Cinemática: avance continuo sobre la ruta
+        var opState = current.operationalState
+        var posX = current.posX
+        var posY = current.posY
+        var heading = current.headingDeg
+        var speed = current.speedMps
+        var isMoving = current.isMoving
+        var progress = current.missionProgress
+        var zone = current.zoneName
+        var waypointIdx = current.currentWaypoint
+        var justCompleted: String? = null
+
+        when (opState) {
+            OperationalState.PATROLLING -> {
+                if (dwellRemainingSec > 0f) {
+                    // Guardia: el robot se detiene en el waypoint y barre el entorno girando sobre su eje
+                    dwellRemainingSec -= dtSim
+                    heading = normalizeDeg(heading + SCAN_DEG_PER_SEC * dtSim)
+                    isMoving = false
+                    speed = 0f
+                } else {
+                    speed = PATROL_SPEED_MPS + (Random.nextFloat() * 0.1f - 0.05f)
+                    isMoving = true
+                    val budget = PATROL_SPEED_MPS * dtSim
+                    if (routeQueue.isNotEmpty()) {
+                        val target = routeQueue.first()
+                        val dx = target.x - posX
+                        val dy = target.y - posY
+                        val dist = hypot(dx, dy)
+                        if (dist > 0.001f) heading = normalizeDeg(Math.toDegrees(atan2(dy, dx).toDouble()).toFloat())
+                        zone = target.name
+                        if (dist <= budget) {
+                            posX = target.x
+                            posY = target.y
+                            routeQueue.removeFirst()
+                            reachedCount++
+                            waypointIdx = reachedCount
+                            if (routeQueue.isNotEmpty()) dwellRemainingSec = DWELL_SECONDS
+                        } else {
+                            posX += dx / dist * budget
+                            posY += dy / dist * budget
+                            waypointIdx = reachedCount + 1
+                        }
+                    }
+
+                    if (routeQueue.isEmpty()) {
+                        // Misión completada: el robot frena en el último punto (fuera de la base)
+                        progress = 100f
+                        opState = OperationalState.STANDBY
+                        isMoving = false
+                        speed = 0f
+                        waypointIdx = currentRoute.size
+                        justCompleted = current.missionName ?: "Ronda de Inspección"
+                        persistMissionResult("COMPLETED", currentRoute.size, "Ronda finalizada con éxito. Esperando decisión: retorno a base o nueva misión.")
+                    } else {
+                        progress = (100f * (1f - remainingDistance(posX, posY) / pathTotalDistance.coerceAtLeast(0.01f)))
+                            .coerceIn(0f, 99.9f)
+                    }
+                }
             }
-            current.operationalState == OperationalState.PATROLLING && Random.nextInt(100) < 30 ->
-                (current.batteryPercentage - 1).coerceAtLeast(1)
-            else -> current.batteryPercentage
+
+            OperationalState.RETURNING_HOME -> {
+                speed = RETURN_SPEED_MPS
+                isMoving = true
+                val budget = RETURN_SPEED_MPS * dtSim
+                if (routeQueue.isNotEmpty()) {
+                    val target = routeQueue.first()
+                    val dx = target.x - posX
+                    val dy = target.y - posY
+                    val dist = hypot(dx, dy)
+                    if (dist > 0.001f) heading = normalizeDeg(Math.toDegrees(atan2(dy, dx).toDouble()).toFloat())
+                    zone = target.name
+                    if (dist <= budget) {
+                        posX = target.x
+                        posY = target.y
+                        routeQueue.removeFirst()
+                    } else {
+                        posX += dx / dist * budget
+                        posY += dy / dist * budget
+                    }
+                }
+                if (routeQueue.isEmpty()) {
+                    // Llegó a base
+                    progress = 0f
+                    opState = OperationalState.STANDBY
+                    isMoving = false
+                    speed = 0f
+                    zone = baseStation.name
+                    reachedCount = 0
+                    waypointIdx = 0
+                    logEventAsync("SAFETY", "Retorno a Base Completado", "Robot asegurado en Estación Base de Carga. Iniciando regeneración de batería.", "INFO")
+                } else {
+                    progress = (returnStartProgress * remainingDistance(posX, posY) / pathTotalDistance.coerceAtLeast(0.01f))
+                        .coerceIn(0f, 100f)
+                }
+            }
+
+            OperationalState.PAUSED, OperationalState.EMERGENCY_STOP, OperationalState.STANDBY, OperationalState.FAULT -> {
+                isMoving = false
+                speed = 0f
+            }
         }
+
+        // 2. Batería: desgaste en patrullaje y recarga en base (acumulador fraccional)
+        val isAtBase = hypot(posX - baseStation.x, posY - baseStation.y) < AT_BASE_RADIUS_M
+        val isCharging = isAtBase && opState == OperationalState.STANDBY
+        var newBattery = current.batteryPercentage
+        when {
+            isCharging -> batteryAccum += CHARGE_PCT_PER_SEC * TICK_SECONDS
+            opState == OperationalState.PATROLLING -> batteryAccum -= DRAIN_PCT_PER_SEC * TICK_SECONDS
+            else -> batteryAccum = 0f
+        }
+        while (batteryAccum >= 1f) { newBattery = (newBattery + 1).coerceAtMost(100); batteryAccum -= 1f }
+        while (batteryAccum <= -1f) { newBattery = (newBattery - 1).coerceAtLeast(1); batteryAccum += 1f }
 
         // Alerta automática de batería baja si cae a 15% o menos
         val alerts = current.activeAlerts.toMutableList()
@@ -123,80 +242,20 @@ class SimulatedRobotRepository(
             logEventAsync("ALERT", alert.title, alert.message, "WARNING")
         }
 
-        // 2. Progresión según estado operativo
-        var opState = current.operationalState
-        var progress = current.missionProgress
-        var waypointIdx = current.currentWaypoint
-        var zone = current.zoneName
-        var posX = current.posX
-        var posY = current.posY
-        var speed = current.speedMps
-        var isMoving = current.isMoving
-        var heading = current.headingDeg
-        var justCompleted: String? = null
-
-        when (opState) {
-            OperationalState.PATROLLING -> {
-                isMoving = true
-                speed = 0.85f + (Random.nextFloat() * 0.1f - 0.05f)
-                progress += 3.5f
-
-                if (progress >= 100f) {
-                    // Misión completada: el robot frena en el último punto del recorrido (fuera de la base)
-                    progress = 100f
-                    opState = OperationalState.STANDBY
-                    isMoving = false
-                    speed = 0f
-                    waypointIdx = waypoints.size
-                    zone = waypoints.last().name
-                    posX = waypoints.last().x
-                    posY = waypoints.last().y
-
-                    // Notificar fin de misión para decisión del operador
-                    justCompleted = current.missionName ?: "Ronda de Inspección"
-
-                    // Persistir misión en Room
-                    persistMissionResult("COMPLETED", waypoints.size, "Ronda finalizada con éxito. Esperando decisión: retorno a base o nueva misión.")
-                } else {
-                    // Actualizar waypoint proporcional al progreso
-                    val targetIdx = ((progress / 100f) * (waypoints.size - 1)).toInt().coerceIn(0, waypoints.size - 1)
-                    waypointIdx = targetIdx + 1
-                    val targetWaypoint = waypoints[targetIdx]
-                    zone = targetWaypoint.name
-                    posX = targetWaypoint.x
-                    posY = targetWaypoint.y
-                    heading = (heading + 15f) % 360f
-                }
-            }
-
-            OperationalState.RETURNING_HOME -> {
-                isMoving = true
-                speed = 0.70f
-                if (progress > 5f) {
-                    progress -= 8f
-                } else {
-                    // Llegó a base
-                    progress = 0f
-                    opState = OperationalState.STANDBY
-                    isMoving = false
-                    speed = 0f
-                    zone = baseStation.name
-                    posX = baseStation.x
-                    posY = baseStation.y
-                    logEventAsync("SAFETY", "Retorno a Base Completado", "Robot asegurado en Estación Base de Carga. Iniciando regeneración de batería.", "INFO")
-                }
-            }
-
-            OperationalState.PAUSED, OperationalState.EMERGENCY_STOP, OperationalState.STANDBY, OperationalState.FAULT -> {
-                isMoving = false
-                speed = 0f
-            }
-        }
-
-        // 3. Variables de servicio (fluctuaciones ambientales normales si no hay alerta forzada)
+        // 3. Variables de servicio y enlace: se refrescan 1 vez por segundo
         val hasGasAlert = alerts.any { it.code == "GAS_LEAK" && !it.acknowledged }
-        val currentGas = if (hasGasAlert) current.smokeGasPpm else (12.0 + Random.nextDouble() * 3.0)
-        val currentTemp = if (hasGasAlert) current.ambientTemperatureCelsius else (21.0 + Random.nextDouble() * 1.5)
+        var currentGas = current.smokeGasPpm
+        var currentTemp = current.ambientTemperatureCelsius
+        var rssi = current.rssiDbm
+        var latency = current.latencyMs
+        if (isSlowTick) {
+            if (!hasGasAlert) {
+                currentGas = 12.0 + Random.nextDouble() * 3.0
+                currentTemp = 21.0 + Random.nextDouble() * 1.5
+            }
+            rssi = -55 + Random.nextInt(-4, 5)
+            latency = 24L + Random.nextLong(0, 10)
+        }
 
         if (currentGas > maxRecordedGas) maxRecordedGas = currentGas
         if (currentTemp > maxRecordedTemp) maxRecordedTemp = currentTemp
@@ -204,8 +263,8 @@ class SimulatedRobotRepository(
         _telemetry.value = current.copy(
             timestamp = now,
             connectionState = ConnectionState.ONLINE,
-            rssiDbm = -55 + Random.nextInt(-4, 5),
-            latencyMs = 24L + Random.nextLong(0, 10),
+            rssiDbm = rssi,
+            latencyMs = latency,
             batteryPercentage = newBattery,
             batteryVoltage = 24.0f + (newBattery / 100f) * 1.2f,
             isCharging = isCharging,
@@ -225,6 +284,31 @@ class SimulatedRobotRepository(
             ambientTemperatureCelsius = Math.round(currentTemp * 10.0) / 10.0,
             justCompletedMissionName = justCompleted ?: current.justCompletedMissionName
         )
+    }
+
+    // --- Utilidades de cinemática ---
+
+    private fun normalizeDeg(deg: Float): Float = ((deg % 360f) + 360f) % 360f
+
+    /** Distancia restante desde (x, y) pasando por todos los puntos pendientes de la ruta. */
+    private fun remainingDistance(x: Float, y: Float): Float {
+        var total = 0f
+        var px = x
+        var py = y
+        for (w in routeQueue) {
+            total += hypot(w.x - px, w.y - py)
+            px = w.x
+            py = w.y
+        }
+        return total
+    }
+
+    /** Define una nueva ruta pendiente y fija su longitud total (base del cálculo de progreso). */
+    private fun setRoute(points: List<Waypoint>, fromX: Float, fromY: Float) {
+        routeQueue.clear()
+        routeQueue.addAll(points)
+        pathTotalDistance = remainingDistance(fromX, fromY)
+        dwellRemainingSec = 0f
     }
 
     override suspend fun sendCommand(type: CommandType, parameters: Map<String, String>): CommandRecord {
@@ -334,7 +418,8 @@ class SimulatedRobotRepository(
             }
 
             CommandType.RETURN_TO_SAFE_POINT -> {
-                if (state.operationalState == OperationalState.STANDBY && state.zoneName.contains("Base")) {
+                val atBase = hypot(state.posX - baseStation.x, state.posY - baseStation.y) < AT_BASE_RADIUS_M
+                if (state.operationalState == OperationalState.STANDBY && atBase) {
                     Pair(false, "El robot ya se encuentra en la base segura.")
                 } else {
                     Pair(true, "")
@@ -355,7 +440,7 @@ class SimulatedRobotRepository(
         }
     }
 
-    private fun executeCommandEffect(type: CommandType, parameters: Map<String, String>) {
+    private fun executeCommandEffect(type: CommandType, parameters: Map<String, String>) = synchronized(simLock) {
         val current = _telemetry.value
         when (type) {
             CommandType.START_MISSION -> {
@@ -364,13 +449,17 @@ class SimulatedRobotRepository(
                 maxRecordedTemp = 21.5
                 val mName = parameters["missionName"] ?: "Ronda de Inspección Integral"
                 val mId = parameters["missionId"] ?: "MIS-${UUID.randomUUID().toString().take(6).uppercase()}"
+                currentRoute = waypoints
+                reachedCount = 0
+                batteryAccum = 0f
+                setRoute(currentRoute, current.posX, current.posY)
                 _telemetry.value = current.copy(
                     operationalState = OperationalState.PATROLLING,
                     missionId = mId,
                     missionName = mName,
                     missionProgress = 0f,
                     currentWaypoint = 1,
-                    totalWaypoints = waypoints.size,
+                    totalWaypoints = currentRoute.size,
                     isMoving = true,
                     speedMps = 0.85f
                 )
@@ -395,6 +484,8 @@ class SimulatedRobotRepository(
             CommandType.CANCEL_MISSION -> {
                 val completed = current.currentWaypoint
                 persistMissionResult("CANCELLED", completed, "Misión cancelada por el operador.")
+                routeQueue.clear()
+                dwellRemainingSec = 0f
                 _telemetry.value = current.copy(
                     operationalState = OperationalState.STANDBY,
                     isMoving = false,
@@ -403,6 +494,10 @@ class SimulatedRobotRepository(
             }
 
             CommandType.RETURN_TO_SAFE_POINT -> {
+                // Vuelve sobre sus pasos: waypoints ya visitados en orden inverso y luego la base
+                val backtrack = currentRoute.take(reachedCount).reversed() + baseStation
+                returnStartProgress = current.missionProgress
+                setRoute(backtrack, current.posX, current.posY)
                 _telemetry.value = current.copy(
                     operationalState = OperationalState.RETURNING_HOME,
                     isMoving = true,
@@ -524,9 +619,13 @@ class SimulatedRobotRepository(
         isForcedRejection = reject
     }
 
-    override fun resetSimulation() {
+    override fun resetSimulation() = synchronized(simLock) {
         isForcedOffline = false
         isForcedRejection = false
+        routeQueue.clear()
+        reachedCount = 0
+        dwellRemainingSec = 0f
+        batteryAccum = 0f
         _telemetry.value = TelemetryData(
             robotId = "Unitree-G1-Alpha",
             operationalState = OperationalState.STANDBY,
@@ -577,4 +676,21 @@ class SimulatedRobotRepository(
     }
 
     private data class Waypoint(val name: String, val x: Float, val y: Float)
+
+    private companion object {
+        const val TICK_MS = 200L
+        const val TICK_SECONDS = TICK_MS / 1000f
+        const val SLOW_TICK_EVERY = 5L            // 1 s: variables ambientales y de enlace
+
+        /** Compresión del tiempo de simulación para que una ronda dure ~40 s en la demo. */
+        const val TIME_SCALE = 2f
+        const val PATROL_SPEED_MPS = 0.85f
+        const val RETURN_SPEED_MPS = 0.70f
+        const val DWELL_SECONDS = 3f              // pausa de guardia en cada waypoint
+        const val SCAN_DEG_PER_SEC = 120f         // giro del barrido: 360° durante la pausa
+        const val AT_BASE_RADIUS_M = 0.5f
+
+        const val DRAIN_PCT_PER_SEC = 0.3f        // desgaste en patrullaje
+        const val CHARGE_PCT_PER_SEC = 2f         // recarga en base
+    }
 }
