@@ -42,9 +42,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,8 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ar.edu.uade.unitreeg1hmi99.data.model.AlertItem
-import ar.edu.uade.unitreeg1hmi99.data.model.AlertSeverity
+import ar.edu.uade.unitreeg1hmi99.domain.model.AlertItem
+import ar.edu.uade.unitreeg1hmi99.domain.model.AlertSeverity
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDanger
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBg
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBorder
@@ -82,7 +82,7 @@ fun AlertsScreen(
     viewModel: RobotViewModel,
     modifier: Modifier = Modifier
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val alerts = state.telemetry.activeAlerts
     val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 

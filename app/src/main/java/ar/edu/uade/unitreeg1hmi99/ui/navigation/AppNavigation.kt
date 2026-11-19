@@ -23,11 +23,11 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,7 +62,7 @@ fun AppNavigation(
     historyViewModel: HistoryViewModel
 ) {
     var currentDestination by rememberSaveable { mutableStateOf(NavigationDestination.DASHBOARD) }
-    val robotState by robotViewModel.uiState.collectAsState()
+    val robotState by robotViewModel.uiState.collectAsStateWithLifecycle()
     val unacknowledgedAlerts = robotState.telemetry.unacknowledgedAlertsCount
 
     Scaffold(

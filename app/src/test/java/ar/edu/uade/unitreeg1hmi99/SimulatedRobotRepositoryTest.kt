@@ -6,11 +6,12 @@ import ar.edu.uade.unitreeg1hmi99.data.local.dao.EventLogDao
 import ar.edu.uade.unitreeg1hmi99.data.local.dao.MissionHistoryDao
 import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
 import ar.edu.uade.unitreeg1hmi99.data.local.entity.MissionHistoryEntity
-import ar.edu.uade.unitreeg1hmi99.data.model.BuildingMap
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandStatus
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
-import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
 import ar.edu.uade.unitreeg1hmi99.data.repository.SimulatedRobotRepository
+import ar.edu.uade.unitreeg1hmi99.domain.model.BuildingMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandStatus
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.domain.model.OperationalState
+import ar.edu.uade.unitreeg1hmi99.domain.usecase.ValidateRobotCommandUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -331,5 +332,35 @@ class SimulatedRobotRepositoryTest {
         assertEquals(OperationalState.STANDBY, restoredRepo.telemetry.value.operationalState)
         assertEquals(0f, restoredRepo.telemetry.value.posX, 0.001f)
         assertEquals(0f, restoredRepo.telemetry.value.posY, 0.001f)
+    }
+
+    @Test
+    fun validateRobotCommandUseCase_evaluatesAvailabilityAcrossStates() {
+        val useCase = ValidateRobotCommandUseCase()
+        val base = BuildingMap.default.base
+
+        // 1. En espera en base con batería normal
+        val initialAvail = useCase.evaluateAvailability(repo.telemetry.value, base)
+        assertTrue(initialAvail.canStart)
+        assertFalse(initialAvail.canPause)
+        assertFalse(initialAvail.canResume)
+        assertFalse(initialAvail.canCancel)
+        assertFalse(initialAvail.canReturnSafe)
+
+        // 2. Patrullando
+        send(CommandType.START_MISSION)
+        repo.advanceTicks(10)
+        val patrollingAvail = useCase.evaluateAvailability(repo.telemetry.value, base)
+        assertFalse(patrollingAvail.canStart)
+        assertTrue(patrollingAvail.canPause)
+        assertTrue(patrollingAvail.canCancel)
+        assertTrue(patrollingAvail.canReturnSafe)
+
+        // 3. Desconectado (OFFLINE)
+        repo.toggleDisconnection(true)
+        val offlineAvail = useCase.evaluateAvailability(repo.telemetry.value, base)
+        assertFalse(offlineAvail.isOnline)
+        assertFalse(offlineAvail.canPause)
+        assertFalse(offlineAvail.canReturnSafe)
     }
 }

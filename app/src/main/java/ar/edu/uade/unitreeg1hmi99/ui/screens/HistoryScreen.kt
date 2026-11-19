@@ -48,12 +48,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,8 +63,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.MissionHistoryEntity
+import ar.edu.uade.unitreeg1hmi99.domain.model.EventLogRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.MissionRecord
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDanger
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBg
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBorder
@@ -90,7 +90,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel,
     modifier: Modifier = Modifier
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     var showClearDialog by remember { mutableStateOf(false) }
     val timeFormat = remember { SimpleDateFormat("dd/MM HH:mm:ss", Locale.getDefault()) }
@@ -359,7 +359,7 @@ private fun AuditSummaryChip(
 
 @Composable
 fun MissionCard(
-    mission: MissionHistoryEntity,
+    mission: MissionRecord,
     timeFormat: SimpleDateFormat
 ) {
     val isCompleted = mission.status == "COMPLETED"
@@ -526,7 +526,7 @@ private fun MissionMetricPill(
 
 @Composable
 fun EventLogCard(
-    event: EventLogEntity,
+    event: EventLogRecord,
     timeFormat: SimpleDateFormat
 ) {
     val (badgeColor, badgeBg, badgeBorder) = when (event.severity) {

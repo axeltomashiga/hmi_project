@@ -1,4 +1,4 @@
-package ar.edu.uade.unitreeg1hmi99.data.model
+package ar.edu.uade.unitreeg1hmi99.domain.model
 
 /** Punto de interés del recorrido (coordenadas en metros, origen en la Estación Base). */
 data class MapWaypoint(val name: String, val x: Float, val y: Float)

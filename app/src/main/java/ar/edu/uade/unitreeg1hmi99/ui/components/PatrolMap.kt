@@ -78,11 +78,11 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ar.edu.uade.unitreeg1hmi99.R
-import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
-import ar.edu.uade.unitreeg1hmi99.data.model.MapWaypoint
-import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
-import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
-import ar.edu.uade.unitreeg1hmi99.data.model.ZoneKind
+import ar.edu.uade.unitreeg1hmi99.domain.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.MapWaypoint
+import ar.edu.uade.unitreeg1hmi99.domain.model.OperationalState
+import ar.edu.uade.unitreeg1hmi99.domain.model.TelemetryData
+import ar.edu.uade.unitreeg1hmi99.domain.model.ZoneKind
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDanger
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBg
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBorder

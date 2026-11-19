@@ -1,15 +1,15 @@
 package ar.edu.uade.unitreeg1hmi99.data.local
 
 import android.content.Context
-import ar.edu.uade.unitreeg1hmi99.data.model.AlertItem
-import ar.edu.uade.unitreeg1hmi99.data.model.AlertSeverity
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandStatus
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
-import ar.edu.uade.unitreeg1hmi99.data.model.ConnectionState
-import ar.edu.uade.unitreeg1hmi99.data.model.MapWaypoint
-import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
-import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
+import ar.edu.uade.unitreeg1hmi99.domain.model.AlertItem
+import ar.edu.uade.unitreeg1hmi99.domain.model.AlertSeverity
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandStatus
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.domain.model.ConnectionState
+import ar.edu.uade.unitreeg1hmi99.domain.model.MapWaypoint
+import ar.edu.uade.unitreeg1hmi99.domain.model.OperationalState
+import ar.edu.uade.unitreeg1hmi99.domain.model.TelemetryData
 import org.json.JSONArray
 import org.json.JSONObject
 

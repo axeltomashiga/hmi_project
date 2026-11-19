@@ -1,4 +1,4 @@
-package ar.edu.uade.unitreeg1hmi99.data.model
+package ar.edu.uade.unitreeg1hmi99.domain.model
 
 data class TelemetryData(
     val timestamp: Long = System.currentTimeMillis(),

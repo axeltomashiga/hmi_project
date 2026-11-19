@@ -1,11 +1,11 @@
-package ar.edu.uade.unitreeg1hmi99.data.repository
+package ar.edu.uade.unitreeg1hmi99.domain.repository
 
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.MissionHistoryEntity
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
-import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
-import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.domain.model.EventLogRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.MissionRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.TelemetryData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -32,9 +32,9 @@ interface RobotRepository {
     /** Desestimar modal de misión completada tras tomar una decisión */
     fun dismissMissionCompleted()
 
-    /** Flujos de persistencia Room */
-    fun getMissionHistory(): Flow<List<MissionHistoryEntity>>
-    fun getEventLogs(): Flow<List<EventLogEntity>>
+    /** Flujos de auditoría expuestos como modelos de dominio puros (desacoplados de Room) */
+    fun getMissionHistory(): Flow<List<MissionRecord>>
+    fun getEventLogs(): Flow<List<EventLogRecord>>
     suspend fun clearHistory()
 
     // --- Disparadores para demostración de los 5 escenarios de prueba de la consigna ---

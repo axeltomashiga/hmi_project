@@ -58,10 +58,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandStatus
-import ar.edu.uade.unitreeg1hmi99.data.model.ConnectionState
-import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandStatus
+import ar.edu.uade.unitreeg1hmi99.domain.model.ConnectionState
+import ar.edu.uade.unitreeg1hmi99.domain.model.OperationalState
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDanger
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBg
 import ar.edu.uade.unitreeg1hmi99.ui.theme.StatusDangerBorder
