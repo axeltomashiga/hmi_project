@@ -3,14 +3,16 @@ package ar.edu.uade.unitreeg1hmi99.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import ar.edu.uade.unitreeg1hmi99.data.model.BuildingMap
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
-import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
-import ar.edu.uade.unitreeg1hmi99.data.model.MapWaypoint
-import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
-import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
-import ar.edu.uade.unitreeg1hmi99.data.repository.RobotRepository
+import ar.edu.uade.unitreeg1hmi99.domain.model.BuildingMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.domain.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.MapWaypoint
+import ar.edu.uade.unitreeg1hmi99.domain.model.OperationalState
+import ar.edu.uade.unitreeg1hmi99.domain.model.TelemetryData
+import ar.edu.uade.unitreeg1hmi99.domain.repository.RobotRepository
+import ar.edu.uade.unitreeg1hmi99.domain.usecase.CommandAvailability
+import ar.edu.uade.unitreeg1hmi99.domain.usecase.ValidateRobotCommandUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +44,7 @@ data class RobotUiState(
     val showCancelConfirmDialog: Boolean = false,
     val availableMissions: List<MissionTemplate> = DEFAULT_MISSIONS,
     val selectedMission: MissionTemplate = DEFAULT_MISSIONS.first(),
+    val commandAvailability: CommandAvailability = CommandAvailability(),
     // Datos para el mapa 2D
     val floorMap: FloorMap = BuildingMap.default,
     val plannedRoute: List<MapWaypoint> = emptyList(),
@@ -49,7 +52,8 @@ data class RobotUiState(
 )
 
 class RobotViewModel(
-    private val repository: RobotRepository
+    private val repository: RobotRepository,
+    private val validateCommandUseCase: ValidateRobotCommandUseCase = ValidateRobotCommandUseCase()
 ) : ViewModel() {
 
     private val _showEmergencyDialog = MutableStateFlow(false)
@@ -80,6 +84,10 @@ class RobotViewModel(
             isForcedOffline = offline,
             isForcedRejection = reject,
             selectedMission = mission,
+            commandAvailability = validateCommandUseCase.evaluateAvailability(
+                telemetry = telemetry,
+                baseStation = repository.floorMap.base
+            ),
             showEmergencyConfirmDialog = emergencyDlg,
             showCancelConfirmDialog = cancelDlg
         )
@@ -159,6 +167,10 @@ class RobotViewModel(
 
     fun setCancelDialogVisible(visible: Boolean) {
         _showCancelDialog.value = visible
+    }
+
+    fun saveSimulationState(sync: Boolean = true) {
+        repository.saveStateNow(sync = sync)
     }
 
     // --- Métodos de demostración para los 5 Escenarios del TP ---

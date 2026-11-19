@@ -3,9 +3,9 @@ package ar.edu.uade.unitreeg1hmi99.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.MissionHistoryEntity
-import ar.edu.uade.unitreeg1hmi99.data.repository.RobotRepository
+import ar.edu.uade.unitreeg1hmi99.domain.model.EventLogRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.MissionRecord
+import ar.edu.uade.unitreeg1hmi99.domain.repository.RobotRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class HistoryUiState(
-    val missions: List<MissionHistoryEntity> = emptyList(),
-    val eventLogs: List<EventLogEntity> = emptyList(),
+    val missions: List<MissionRecord> = emptyList(),
+    val eventLogs: List<EventLogRecord> = emptyList(),
     val isLoading: Boolean = false
 )
 

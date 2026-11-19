@@ -3,8 +3,8 @@
 > **Aviso:** este contrato es una **propuesta del grupo** para desacoplar la app del robot.
 > **No es un protocolo oficial de Unitree** ni representa la API real del G1.
 
-La app no serializa JSON en tiempo de ejecución: usa los modelos Kotlin de
-`data/model` a través de `RobotRepository`. Este documento describe el mensaje
+La app no serializa JSON en tiempo de ejecución: usa los modelos Kotlin puros de
+`domain/model` a través de `domain/repository/RobotRepository`. Este documento describe el mensaje
 equivalente que una implementación real del Repository (por ejemplo sobre WebSocket
 o MQTT) recibiría y enviaría. `SimulatedRobotRepository` produce los mismos datos
 sin red.
@@ -215,9 +215,10 @@ Modelo Kotlin: `AlertItem`.
 
 ## 5. Eventos de auditoría (persistidos localmente en Room)
 
-No viajan por el contrato. Los genera la app y los guarda en `EventLogEntity`
+No viajan por el contrato. Los genera la app, los persiste en Room mediante `EventLogEntity`
 (`eventType`: `SYSTEM`, `COMMAND`, `ALERT`, `SAFETY`, `DISCONNECTION`, `MISSION`) y
-`MissionHistoryEntity` (estado `COMPLETED` o `CANCELLED`).
+`MissionHistoryEntity` (estado `COMPLETED` o `CANCELLED`), y los expone hacia la capa de
+presentación mapeados a los modelos de dominio `EventLogRecord` y `MissionRecord` (`AuditMappers.kt`).
 
 ---
 

@@ -13,8 +13,8 @@ SimulatedRobotRepository  --(StateFlow<TelemetryData>, floorMap)-->  RobotViewMo
                                                                        DashboardScreen -> PatrolMap (Canvas)
 ```
 
-- `data/model/MapModel.kt`: `FloorMap` (zonas, waypoints, base, rutas por misión) y `BuildingMap.default`.
-- `RobotRepository.floorMap`: el plano llega por el Repository; la UI no conoce al simulador.
+- `domain/model/MapModel.kt`: `FloorMap` (zonas, waypoints, base, rutas por misión) y `BuildingMap.default`.
+- `domain/repository/RobotRepository.floorMap`: el plano llega por el Repository; la UI no conoce al simulador.
 - `RobotViewModel`: arma `plannedRoute` (ruta de la misión activa, o de la seleccionada si no hay) y `routeReached`.
 - `ui/components/PatrolMap.kt`: solo dibuja estado. Recibe plano, ruta, avance y `TelemetryData`.
 

@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import ar.edu.uade.unitreeg1hmi99.data.repository.SimulatedRobotRepository
+import ar.edu.uade.unitreeg1hmi99.domain.repository.RobotRepository
 import ar.edu.uade.unitreeg1hmi99.ui.navigation.AppNavigation
 import ar.edu.uade.unitreeg1hmi99.ui.theme.Unitreeg1hmi99Theme
 import ar.edu.uade.unitreeg1hmi99.ui.viewmodel.HistoryViewModel
@@ -13,7 +14,7 @@ import ar.edu.uade.unitreeg1hmi99.ui.viewmodel.RobotViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val repository by lazy {
+    private val repository: RobotRepository by lazy {
         SimulatedRobotRepository.getInstance(applicationContext)
     }
 
@@ -41,6 +42,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        repository.saveStateNow(sync = true)
+        robotViewModel.saveSimulationState(sync = true)
     }
 }

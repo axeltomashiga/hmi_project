@@ -60,9 +60,10 @@ flowchart TD
         HVM["HistoryViewModel.kt\nuiState: StateFlow<HistoryUiState>"]
     end
 
-    subgraph DOMAIN_LAYER ["Capa de Dominio / Modelos y Contrato"]
-        REPO_INT{{"<<interface>>\nRobotRepository.kt"}}
-        MODELS["data/model/\nTelemetryData.kt, RobotEnums.kt,\nMapModel.kt (FloorMap, BuildingMap)"]
+    subgraph DOMAIN_LAYER ["Capa de Dominio (100% Kotlin Puro · Sin Dependencias de Android/Room)"]
+        REPO_INT{{"<<interface>>\ndomain/repository/RobotRepository.kt"}}
+        USE_CASE["domain/usecase/\nValidateRobotCommandUseCase.kt\n(Reglas de Habilitación y Precondiciones)"]
+        MODELS["domain/model/\nTelemetryData.kt, RobotEnums.kt,\nMapModel.kt, AuditModels.kt (MissionRecord, EventLogRecord)"]
     end
 
     subgraph DATA_LAYER ["Capa de Datos (Simulación Cinemática Offline + Persistencia Dual)"]
@@ -89,17 +90,20 @@ flowchart TD
     end
 
     %% Relaciones UI <-> ViewModel
-    S2 & S3 & S5 -- "Observa StateFlow (collectAsState)" --> RVM
+    S2 & S3 & S5 -- "Observa StateFlow (collectAsStateWithLifecycle)" --> RVM
     S2 & S3 & S5 -- "Envía Eventos / Comandos" --> RVM
-    S4 -- "Observa Historial (collectAsState)" --> HVM
+    S4 -- "Observa Historial (collectAsStateWithLifecycle)" --> HVM
 
-    %% Relaciones ViewModel <-> Repository Interface
+    %% Relaciones ViewModel <-> Domain
     RVM -- "Combina telemetry, lastCommand,\nisForcedOffline, isForcedRejection, floorMap" --> REPO_INT
-    HVM -- "Consume Flows de Room" --> REPO_INT
+    RVM -- "Evalúa CommandAvailability" --> USE_CASE
+    HVM -- "Consume Flows de MissionRecord y EventLogRecord" --> REPO_INT
     REPO_INT --- MODELS
+    USE_CASE --- MODELS
 
     %% Implementación del Repositorio
     SIM_REPO -. "Implementa" .-> REPO_INT
+    SIM_REPO -- "Valida Precondiciones" --> USE_CASE
     SIM_REPO --> FAST_TICK & SLOW_TICK & VALIDATOR
 
     %% Relaciones Repository <-> SimulationStateStore
@@ -115,17 +119,21 @@ flowchart TD
 
 #### Responsabilidades por Capa:
 1. **Capa UI (`ui/screens`, `ui/components`, `ui/navigation`, `ui/theme`):**
-   - Renderiza declarativamente el estado expuesto por los ViewModels mediante `collectAsState()`.
+   - Renderiza declarativamente el estado expuesto por los ViewModels mediante `collectAsStateWithLifecycle()`.
    - [`PatrolMap.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/components/PatrolMap.kt) dibuja en un `Canvas` 2D colapsable el plano del edificio (`FloorMap`), la ruta planificada (`plannedRoute`), el tramo completado (`routeReached`), la posición suavizada del robot, su cono de visión y las alertas espaciales, sin acoplarse al simulador.
-   - [`DashboardScreen.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/screens/DashboardScreen.kt) integra el botón flotante fijo de acceso rápido al mapa (`FixedMapQuickToggleButton`) y el modal inferior deslizable de órdenes (`SwipeableCommandsBottomModal`).
-   - [`MainActivity.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/MainActivity.kt) invoca `repository.saveStateNow(sync = true)` en `onStop()` para garantizar que ninguna misión en curso se pierda al pasar a segundo plano o cerrar la app.
+   - [`DashboardScreen.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/screens/DashboardScreen.kt) integra el botón flotante fijo de acceso rápido al mapa (`FixedMapQuickToggleButton`) y el modal inferior deslizable de órdenes (`SwipeableCommandsBottomModal`), consumiendo `state.commandAvailability` precalculado.
+   - [`RobotUiMappers.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/components/RobotUiMappers.kt) mapea los enums de dominio puros a recursos `@StringRes` de Android.
+   - [`MainActivity.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/MainActivity.kt) invoca `robotViewModel.saveSimulationState(sync = true)` en `onStop()` para garantizar que ninguna misión en curso se pierda al pasar a segundo plano o cerrar la app.
 2. **Capa ViewModel (`ui/viewmodel`):**
-   - [`RobotViewModel`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/viewmodel/RobotViewModel.kt) combina reactivamente 5 flujos del repositorio y de la vista (`telemetry`, `lastCommand`, `isForcedOffline`, `isForcedRejection`, `_selectedMission`) más los estados de los modales de confirmación (`_showEmergencyDialog`, `_showCancelDialog`) en un único `StateFlow<RobotUiState>` inmutable, calculando además `plannedRoute` y `routeReached` para el mapa 2D.
-   - [`HistoryViewModel`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/viewmodel/HistoryViewModel.kt) expone reactivamente las tablas de misiones y eventos almacenadas en Room.
-3. **Capa Repository (`data/repository`):**
-   - [`RobotRepository`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/repository/RobotRepository.kt) define el contrato estricto de comunicación (incluyendo `floorMap`, `telemetry`, `lastCommand`, banderas observables `isForcedOffline`/`isForcedRejection`, comandos, escenarios y `saveStateNow`).
-   - [`SimulatedRobotRepository`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/repository/SimulatedRobotRepository.kt) ejecuta el motor de simulación cinemática 100% offline.
-4. **Capa de Persistencia Local Dual (`data/local`):**
+   - [`RobotViewModel`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/viewmodel/RobotViewModel.kt) combina reactivamente 5 flujos del repositorio y de la vista (`telemetry`, `lastCommand`, `isForcedOffline`, `isForcedRejection`, `_selectedMission`) más los estados de los modales de confirmación (`_showEmergencyDialog`, `_showCancelDialog`) en un único `StateFlow<RobotUiState>` inmutable, calculando además `commandAvailability` (mediante [`ValidateRobotCommandUseCase`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/usecase/ValidateRobotCommandUseCase.kt)), `plannedRoute` y `routeReached` para el mapa 2D.
+   - [`HistoryViewModel`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/ui/viewmodel/HistoryViewModel.kt) expone reactivamente el historial de misiones (`MissionRecord`) y eventos (`EventLogRecord`) como modelos de dominio puros.
+3. **Capa Domain (`domain/model`, `domain/repository`, `domain/usecase`):**
+   - 100% Kotlin puro, sin dependencias del framework Android ni de anotaciones de Room.
+   - [`RobotRepository`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/repository/RobotRepository.kt) define el contrato estricto de comunicación (incluyendo `floorMap`, `telemetry`, `lastCommand`, flujos de dominio `MissionRecord`/`EventLogRecord`, comandos, escenarios y `saveStateNow`).
+   - [`ValidateRobotCommandUseCase`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/usecase/ValidateRobotCommandUseCase.kt) centraliza las reglas de negocio de precondiciones y habilitación de comandos (`CommandAvailability`).
+4. **Capa Data (`data/repository`, `data/mapper`, `data/local`):**
+   - [`SimulatedRobotRepository`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/repository/SimulatedRobotRepository.kt) implementa `RobotRepository` y ejecuta el motor de simulación cinemática 100% offline.
+   - [`AuditMappers.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/mapper/AuditMappers.kt) transforma las entidades de base de datos (`MissionHistoryEntity`, `EventLogEntity`) en modelos de dominio (`MissionRecord`, `EventLogRecord`).
    - **Room SQLite ([`AppDatabase.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/local/AppDatabase.kt)):** gestiona `unitree_g1_hmi.db` para el historial permanente de misiones finalizadas/canceladas (`mission_history`) y logs de auditoría (`event_logs`).
    - **Instantánea de Simulación ([`SimulationStateStore.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/local/SimulationStateStore.kt)):** `SharedPrefsSimulationStateStore` serializa en JSON el estado vivo del simulador (`SimulationSnapshot`) en `SharedPreferences` (`unitree_g1_sim_state`) para sobrevivir cierres de la app sin contaminar el esquema de auditoría de Room.
 
@@ -245,8 +253,18 @@ stateDiagram-v2
 
 ```text
 ar.edu.uade.unitreeg1hmi99/
-├── MainActivity.kt                        # Punto de entrada, Singleton Repo y guardado en onStop()
-├── data/
+├── MainActivity.kt                        # Punto de entrada, Composition Root y guardado vía ViewModel en onStop()
+├── domain/                                # Capa de Dominio (100% Kotlin Puro, sin Android ni Room)
+│   ├── model/
+│   │   ├── AuditModels.kt                 # MissionRecord y EventLogRecord (desacoplados de Room)
+│   │   ├── MapModel.kt                    # MapWaypoint, MapZone, ZoneKind, FloorMap y BuildingMap
+│   │   ├── TelemetryData.kt               # Modelo inmutable con las 8+3 variables + waypointsReached
+│   │   └── RobotEnums.kt                  # OperationalState, ConnectionState, CommandType, CommandStatus, AlertItem
+│   ├── repository/
+│   │   └── RobotRepository.kt             # Interfaz desacoplada del repositorio en la capa de dominio
+│   └── usecase/
+│       └── ValidateRobotCommandUseCase.kt # Reglas de negocio de habilitación (CommandAvailability) y validación
+├── data/                                  # Capa de Datos (Simulador Offline + Persistencia Dual)
 │   ├── local/
 │   │   ├── AppDatabase.kt                 # Instancia Singleton Room (unitree_g1_hmi.db)
 │   │   ├── SimulationStateStore.kt        # SimulationSnapshot y SharedPrefsSimulationStateStore
@@ -256,38 +274,36 @@ ar.edu.uade.unitreeg1hmi99/
 │   │   └── entity/
 │   │       ├── MissionHistoryEntity.kt    # Tabla mission_history
 │   │       └── EventLogEntity.kt          # Tabla event_logs
-│   ├── model/
-│   │   ├── MapModel.kt                    # MapWaypoint, MapZone, ZoneKind, FloorMap y BuildingMap
-│   │   ├── TelemetryData.kt               # Modelo inmutable con las 8+3 variables + waypointsReached
-│   │   └── RobotEnums.kt                  # OperationalState, ConnectionState, CommandType, CommandStatus, AlertItem
+│   ├── mapper/
+│   │   └── AuditMappers.kt                # Mapeo MissionHistoryEntity/EventLogEntity -> Modelos de Dominio
 │   └── repository/
-│       ├── RobotRepository.kt             # Interfaz desacoplada del repositorio
 │       └── SimulatedRobotRepository.kt    # Motor de simulación cinemática 100% offline (200ms / 1s)
-└── ui/
+└── ui/                                    # Capa de Presentación (MVVM + UDF + Jetpack Compose)
     ├── components/
     │   ├── CommonComponents.kt            # Badges simétricos, CommandStatusCard, SectionHeader, ConfirmDialog
-    │   └── PatrolMap.kt                   # Mapa 2D interactivo y colapsable en Canvas
+    │   ├── PatrolMap.kt                   # Mapa 2D interactivo y colapsable en Canvas
+    │   └── RobotUiMappers.kt              # Extensiones @StringRes para mapear enums de dominio a recursos UI
     ├── navigation/
     │   └── AppNavigation.kt               # Scaffold con Crossfade y NavigationBar de 5 destinos
     ├── screens/
     │   ├── RobotSelectionScreen.kt        # Ficha técnica del Unitree G1, sensores y justificación HRI
     │   ├── DashboardScreen.kt             # Supervisión en vivo, PatrolMap, botón fijo y modal deslizable de comandos
     │   ├── AlertsScreen.kt                # Centro de alertas activas, contadores y reconocimiento
-    │   ├── HistoryScreen.kt               # Historial persistido en Room (Misiones y Logs)
+    │   ├── HistoryScreen.kt               # Historial de dominio (MissionRecord y EventLogRecord)
     │   └── ScenariosScreen.kt             # Monitor en vivo + disparadores de los 5 escenarios del TP
     ├── theme/
     │   ├── Color.kt                       # Paleta semántica industrial HMI (inspirada en ISA-101)
     │   ├── Theme.kt                       # Esquemas Light/Dark con dynamicColor = false
     │   └── Type.kt                        # Jerarquía tipográfica HMI
     └── viewmodel/
-        ├── RobotViewModel.kt              # Estado reactivo principal, rutas 2D y despacho de órdenes
-        └── HistoryViewModel.kt            # Observación reactiva de historial Room
+        ├── RobotViewModel.kt              # Estado reactivo principal, CommandAvailability, rutas 2D y órdenes
+        └── HistoryViewModel.kt            # Observación reactiva de historial en modelos de dominio
 ```
 
 Documentos complementarios en [``](file:///d:/androidProjects/unitreeg1hmi99/docs/):
 - [`contrato-json.md`](file:///d:/androidProjects/unitreeg1hmi99/docs/contrato-json.md): Especificación del contrato JSON propuesto (telemetría, comandos, respuestas y alertas).
 - [`mapa-2d.md`](file:///d:/androidProjects/unitreeg1hmi99/docs/mapa-2d.md): Documentación funcional y convenciones geométricas del módulo de mapa 2D.
-- [`SimulatedRobotRepositoryTest.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/test/java/ar/edu/uade/unitreeg1hmi99/SimulatedRobotRepositoryTest.kt): Suite de 14 pruebas unitarias de cinemática, rutas y persistencia de estado.
+- [`SimulatedRobotRepositoryTest.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/test/java/ar/edu/uade/unitreeg1hmi99/SimulatedRobotRepositoryTest.kt): Suite de 15 pruebas unitarias de cinemática, rutas, caso de uso de validación de comandos y persistencia de estado.
 
 ---
 
@@ -295,17 +311,17 @@ Documentos complementarios en [``](file:///d:/androidProjects/unitreeg1hmi99/doc
 
 ### 2.1. Desacoplamiento mediante Interfaz (`RobotRepository.kt`)
 
-La arquitectura aísla por completo la fuente de datos detrás de la interfaz [`RobotRepository`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/repository/RobotRepository.kt):
+La arquitectura aísla por completo la fuente de datos detrás de la interfaz [`RobotRepository`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/repository/RobotRepository.kt):
 
 ```kotlin
-package ar.edu.uade.unitreeg1hmi99.data.repository
+package ar.edu.uade.unitreeg1hmi99.domain.repository
 
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
-import ar.edu.uade.unitreeg1hmi99.data.local.entity.MissionHistoryEntity
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
-import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
-import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.domain.model.EventLogRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.MissionRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.TelemetryData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -332,9 +348,9 @@ interface RobotRepository {
     /** Desestimar modal de misión completada tras tomar una decisión */
     fun dismissMissionCompleted()
 
-    /** Flujos de persistencia Room */
-    fun getMissionHistory(): Flow<List<MissionHistoryEntity>>
-    fun getEventLogs(): Flow<List<EventLogEntity>>
+    /** Flujos de auditoría expuestos como modelos de dominio puros (desacoplados de Room) */
+    fun getMissionHistory(): Flow<List<MissionRecord>>
+    fun getEventLogs(): Flow<List<EventLogRecord>>
     suspend fun clearHistory()
 
     // --- Disparadores para demostración de los 5 escenarios de prueba de la consigna ---
@@ -354,7 +370,7 @@ interface RobotRepository {
 
 ### 2.2. Modelo del Plano 2D y Rutas por Misión (`MapModel.kt` y `PatrolMap.kt`)
 
-Definido en [`MapModel.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/model/MapModel.kt):
+Definido en [`MapModel.kt`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/model/MapModel.kt):
 * **`FloorMap`:** contiene los límites métricos del edificio (`minX = -2f`, `minY = -2f`, `maxX = 25f`, `maxY = 18f`), las 8 salas rectangulares (`MapZone` con `ZoneKind`), la estación base `(0, 0)`, la lista maestra de 8 `MapWaypoint` y el mapa de rutas por misión (`missionRoutes: Map<String, List<Int>>`).
 * **Rutas diferenciadas por plantilla:**
   - `MIS-A` (*Ronda Integral del Edificio*): índices `0, 1, 2, 3, 4, 5, 6, 7` (8 waypoints).
@@ -458,7 +474,7 @@ class SimulatedRobotRepository(
 ## 3. Ejemplos de Mensajes (Contratos JSON Simulados)
 
 > [!NOTE]
-> Además de los ejemplos siguientes (que reflejan la estructura exacta de los modelos Kotlin [`TelemetryData`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/model/TelemetryData.kt), [`CommandRecord`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/model/RobotEnums.kt) y [`SimulationSnapshot`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/local/SimulationStateStore.kt)), en [`contrato-json.md`](file:///d:/androidProjects/unitreeg1hmi99/docs/contrato-json.md) se documenta la especificación agrupada del protocolo de red propuesto entre el robot y la app.
+> Además de los ejemplos siguientes (que reflejan la estructura exacta de los modelos Kotlin [`TelemetryData`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/model/TelemetryData.kt), [`CommandRecord`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/model/RobotEnums.kt) y [`SimulationSnapshot`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/local/SimulationStateStore.kt)), en [`contrato-json.md`](file:///d:/androidProjects/unitreeg1hmi99/docs/contrato-json.md) se documenta la especificación agrupada del protocolo de red propuesto entre el robot y la app.
 
 ---
 
@@ -786,7 +802,7 @@ class SimulatedRobotRepository(
 
 ### 3.3. Mensajes de Respuesta de Comandos (Robot $\rightarrow$ HMI)
 
-Cada comando emitido por el operador produce un objeto [`CommandRecord`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/data/model/RobotEnums.kt#L54-L60) que transita por los estados `PENDING` $\rightarrow$ (`CONFIRMED` | `REJECTED` | `NO_RESPONSE`).
+Cada comando emitido por el operador produce un objeto [`CommandRecord`](file:///d:/androidProjects/unitreeg1hmi99/app/src/main/java/ar/edu/uade/unitreeg1hmi99/domain/model/RobotEnums.kt#L51-L57) que transita por los estados `PENDING` $\rightarrow$ (`CONFIRMED` | `REJECTED` | `NO_RESPONSE`).
 
 #### Estado 1: Orden en Curso (`PENDING`)
 ```json

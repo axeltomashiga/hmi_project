@@ -9,17 +9,22 @@ import ar.edu.uade.unitreeg1hmi99.data.local.dao.EventLogDao
 import ar.edu.uade.unitreeg1hmi99.data.local.dao.MissionHistoryDao
 import ar.edu.uade.unitreeg1hmi99.data.local.entity.EventLogEntity
 import ar.edu.uade.unitreeg1hmi99.data.local.entity.MissionHistoryEntity
-import ar.edu.uade.unitreeg1hmi99.data.model.AlertItem
-import ar.edu.uade.unitreeg1hmi99.data.model.AlertSeverity
-import ar.edu.uade.unitreeg1hmi99.data.model.BuildingMap
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandStatus
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
-import ar.edu.uade.unitreeg1hmi99.data.model.ConnectionState
-import ar.edu.uade.unitreeg1hmi99.data.model.FloorMap
-import ar.edu.uade.unitreeg1hmi99.data.model.MapWaypoint
-import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
-import ar.edu.uade.unitreeg1hmi99.data.model.TelemetryData
+import ar.edu.uade.unitreeg1hmi99.data.mapper.toDomain
+import ar.edu.uade.unitreeg1hmi99.domain.model.AlertItem
+import ar.edu.uade.unitreeg1hmi99.domain.model.AlertSeverity
+import ar.edu.uade.unitreeg1hmi99.domain.model.BuildingMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandStatus
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.domain.model.ConnectionState
+import ar.edu.uade.unitreeg1hmi99.domain.model.EventLogRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.FloorMap
+import ar.edu.uade.unitreeg1hmi99.domain.model.MapWaypoint
+import ar.edu.uade.unitreeg1hmi99.domain.model.MissionRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.OperationalState
+import ar.edu.uade.unitreeg1hmi99.domain.model.TelemetryData
+import ar.edu.uade.unitreeg1hmi99.domain.repository.RobotRepository
+import ar.edu.uade.unitreeg1hmi99.domain.usecase.ValidateRobotCommandUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,6 +33,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -40,7 +46,8 @@ class SimulatedRobotRepository(
     private val eventDao: EventLogDao,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
     override val floorMap: FloorMap = BuildingMap.default,
-    private val stateStore: SimulationStateStore? = null
+    private val stateStore: SimulationStateStore? = null,
+    private val validateCommandUseCase: ValidateRobotCommandUseCase = ValidateRobotCommandUseCase()
 ) : RobotRepository {
 
     private val baseStation = floorMap.base
@@ -393,9 +400,14 @@ class SimulatedRobotRepository(
             return rejected
         }
 
-        // 4. Validación de condiciones de negocio
+        // 4. Validación de condiciones de negocio delegada al Caso de Uso de Dominio
         val current = _telemetry.value
-        val (isAccepted, rejectionReason) = validateCommandConditions(type, current)
+        val (isAccepted, rejectionReason) = validateCommandUseCase.validate(
+            type = type,
+            state = current,
+            baseStation = baseStation,
+            atBaseRadiusM = AT_BASE_RADIUS_M
+        )
 
         if (!isAccepted) {
             val rejected = CommandRecord(
@@ -420,65 +432,6 @@ class SimulatedRobotRepository(
         executeCommandEffect(type, parameters, confirmed)
         logEventAsync("COMMAND", "Orden Confirmada", "Comando ${type.name} ejecutado", "INFO")
         return confirmed
-    }
-
-    private fun validateCommandConditions(type: CommandType, state: TelemetryData): Pair<Boolean, String> {
-        return when (type) {
-            CommandType.START_MISSION -> {
-                if (state.operationalState != OperationalState.STANDBY) {
-                    Pair(false, "El robot no está en espera (Estado actual: ${state.operationalState.name}).")
-                } else if (state.batteryPercentage <= 15) {
-                    Pair(false, "Batería insuficiente (${state.batteryPercentage}%). Mínimo requerido: 20%.")
-                } else {
-                    Pair(true, "")
-                }
-            }
-
-            CommandType.PAUSE_MISSION -> {
-                if (state.operationalState != OperationalState.PATROLLING) {
-                    Pair(false, "No hay una misión en patrullaje para pausar.")
-                } else {
-                    Pair(true, "")
-                }
-            }
-
-            CommandType.RESUME_MISSION -> {
-                if (state.operationalState != OperationalState.PAUSED) {
-                    Pair(false, "El robot no se encuentra en pausa.")
-                } else {
-                    Pair(true, "")
-                }
-            }
-
-            CommandType.CANCEL_MISSION -> {
-                if (state.operationalState != OperationalState.PATROLLING && state.operationalState != OperationalState.PAUSED) {
-                    Pair(false, "No hay misión activa para cancelar.")
-                } else {
-                    Pair(true, "")
-                }
-            }
-
-            CommandType.RETURN_TO_SAFE_POINT -> {
-                val atBase = hypot(state.posX - baseStation.x, state.posY - baseStation.y) < AT_BASE_RADIUS_M
-                if (state.operationalState == OperationalState.STANDBY && atBase) {
-                    Pair(false, "El robot ya se encuentra en la base segura.")
-                } else {
-                    Pair(true, "")
-                }
-            }
-
-            CommandType.OPERATIONAL_STOP -> {
-                Pair(true, "")
-            }
-
-            CommandType.ACKNOWLEDGE_ALERT -> {
-                if (state.activeAlerts.none { !it.acknowledged }) {
-                    Pair(false, "No existen alertas pendientes de reconocimiento.")
-                } else {
-                    Pair(true, "")
-                }
-            }
-        }
     }
 
     private fun executeCommandEffect(
@@ -596,9 +549,11 @@ class SimulatedRobotRepository(
         stateStore?.save(snapshot, sync = false)
     }
 
-    override fun getMissionHistory(): Flow<List<MissionHistoryEntity>> = missionDao.getAllMissions()
+    override fun getMissionHistory(): Flow<List<MissionRecord>> =
+        missionDao.getAllMissions().map { entities -> entities.map { it.toDomain() } }
 
-    override fun getEventLogs(): Flow<List<EventLogEntity>> = eventDao.getAllEvents()
+    override fun getEventLogs(): Flow<List<EventLogRecord>> =
+        eventDao.getAllEvents().map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun clearHistory() {
         kotlinx.coroutines.withContext(Dispatchers.IO) {

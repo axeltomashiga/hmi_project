@@ -78,12 +78,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,9 +97,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ar.edu.uade.unitreeg1hmi99.R
-import ar.edu.uade.unitreeg1hmi99.data.model.CommandType
-import ar.edu.uade.unitreeg1hmi99.data.model.ConnectionState
-import ar.edu.uade.unitreeg1hmi99.data.model.OperationalState
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandRecord
+import ar.edu.uade.unitreeg1hmi99.domain.model.CommandType
+import ar.edu.uade.unitreeg1hmi99.domain.model.ConnectionState
+import ar.edu.uade.unitreeg1hmi99.domain.model.OperationalState
 import ar.edu.uade.unitreeg1hmi99.ui.components.BatteryBadge
 import ar.edu.uade.unitreeg1hmi99.ui.components.CommandStatusCard
 import ar.edu.uade.unitreeg1hmi99.ui.components.ConfirmDialog
@@ -133,7 +134,7 @@ fun DashboardScreen(
     viewModel: RobotViewModel,
     modifier: Modifier = Modifier
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val telemetry = state.telemetry
     val scrollState = rememberScrollState()
 
@@ -143,23 +144,8 @@ fun DashboardScreen(
     // Estado del Modal Inferior de Comandos (expandible con swipe hacia arriba, ocultable con swipe hacia abajo)
     var isCommandModalExpanded by remember { mutableStateOf(false) }
 
-    // Condiciones de habilitación de comandos
-    val isOnline = telemetry.connectionState != ConnectionState.OFFLINE
-    val canStart = isOnline && telemetry.operationalState == OperationalState.STANDBY && telemetry.batteryPercentage > 15
-    val canPause = isOnline && telemetry.operationalState == OperationalState.PATROLLING
-    val canResume = isOnline && telemetry.operationalState == OperationalState.PAUSED
-    val canCancel = isOnline && (telemetry.operationalState == OperationalState.PATROLLING || telemetry.operationalState == OperationalState.PAUSED)
-    val canReturnSafe = isOnline && (telemetry.operationalState != OperationalState.STANDBY || !telemetry.zoneName.contains("Base"))
-
-    val commandContextHint = when {
-        !isOnline -> "Enlace OFFLINE: órdenes bloqueadas"
-        telemetry.batteryPercentage <= 15 -> "Batería crítica (≤15%)"
-        telemetry.operationalState == OperationalState.STANDBY -> "Listo para iniciar misión"
-        telemetry.operationalState == OperationalState.PATROLLING -> "Patrullaje activo"
-        telemetry.operationalState == OperationalState.PAUSED -> "Misión en pausa"
-        telemetry.operationalState == OperationalState.RETURNING_HOME -> "Retornando a base"
-        else -> "Control manual activo"
-    }
+    // Condiciones de habilitación de comandos provistas por la capa de Dominio / ViewModel
+    val availability = state.commandAvailability
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -912,12 +898,12 @@ fun DashboardScreen(
             SwipeableCommandsBottomModal(
                 isExpanded = isCommandModalExpanded,
                 onExpandChange = { isCommandModalExpanded = it },
-                commandContextHint = commandContextHint,
-                canStart = canStart,
-                canPause = canPause,
-                canResume = canResume,
-                canCancel = canCancel,
-                canReturnSafe = canReturnSafe,
+                commandContextHint = availability.contextHint,
+                canStart = availability.canStart,
+                canPause = availability.canPause,
+                canResume = availability.canResume,
+                canCancel = availability.canCancel,
+                canReturnSafe = availability.canReturnSafe,
                 lastCommand = state.lastCommand,
                 onStart = { viewModel.sendCommand(CommandType.START_MISSION) },
                 onPause = { viewModel.sendCommand(CommandType.PAUSE_MISSION) },
@@ -1120,7 +1106,7 @@ private fun SwipeableCommandsBottomModal(
     canResume: Boolean,
     canCancel: Boolean,
     canReturnSafe: Boolean,
-    lastCommand: ar.edu.uade.unitreeg1hmi99.data.model.CommandRecord?,
+    lastCommand: CommandRecord?,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
